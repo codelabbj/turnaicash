@@ -1,9 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMessaging } from 'firebase-admin/messaging';
 
-const messaging = getMessaging();
+// Lazy initialization - only load Firebase Admin when actually needed
+async function getMessagingClient() {
+  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+    return null;
+  }
+  
+  try {
+    const { getMessaging } = await import('firebase-admin/messaging');
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+    
+    if (getApps().length === 0) {
+      initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+      });
+    }
+    
+    return getMessaging();
+  } catch (error) {
+    console.warn('Firebase Admin not initialized:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
+  const messaging = await getMessagingClient();
+  
+  if (!messaging) {
+    return NextResponse.json(
+      { error: 'Firebase Admin not available' },
+      { status: 503 }
+    );
+  }
+  
   try {
     const body = await request.json();
     const { 
@@ -130,6 +163,15 @@ export async function POST(request: NextRequest) {
 
 // Send to topic
 export async function PUT(request: NextRequest) {
+  const messaging = await getMessagingClient();
+  
+  if (!messaging) {
+    return NextResponse.json(
+      { error: 'Firebase Admin not available' },
+      { status: 503 }
+    );
+  }
+  
   try {
     const body = await request.json();
     const { 

@@ -1,24 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getMessaging } from 'firebase-admin/messaging';
 
-// Initialize Firebase Admin SDK
-if (getApps().length === 0) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
+// Lazy initialization - only load Firebase Admin when actually needed
+async function getMessagingClient() {
+  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+    return null;
+  }
+  
+  try {
+    const { getMessaging } = await import('firebase-admin/messaging');
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+    
+    if (getApps().length === 0) {
+      initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+      });
+    }
+    
+    return getMessaging();
+  } catch (error) {
+    console.warn('Firebase Admin not initialized:', error);
+    return null;
+  }
 }
-
-const messaging = getMessaging();
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function POST(request: NextRequest) {
+  const messaging = await getMessagingClient();
+  
+  if (!messaging) {
+    return NextResponse.json(
+      { error: 'Firebase Admin not available' },
+      { status: 503 }
+    );
+  }
+  
   try {
     const body = await request.json();
     const { token, platform, userId } = body;
@@ -56,6 +77,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const messaging = await getMessagingClient();
+  
+  if (!messaging) {
+    return NextResponse.json(
+      { error: 'Firebase Admin not available' },
+      { status: 503 }
+    );
+  }
+  
   try {
     const body = await request.json();
     const { token, userId } = body;
