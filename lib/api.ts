@@ -59,6 +59,7 @@ api.interceptors.response.use(
       defaultLang === "fr" ? "Une erreur est survenue. Veuillez réessayer." : "An unexpected error occurred."
 
     const backendMsg =
+      error.response?.data?.details ||
       error.response?.data?.detail ||
       error.response?.data?.error ||
       error.response?.data?.message ||

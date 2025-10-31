@@ -92,11 +92,47 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
       fcmService.setupForegroundListener((payload) => {
         console.log('Foreground message received:', payload);
         
-        // Show toast notification
-        toast.success(payload.notification?.title || 'New Notification', {
-          description: payload.notification?.body,
-          duration: 5000,
-        });
+        // Show native browser notification
+        try {
+          if (typeof window === 'undefined' || !('Notification' in window) || !window.Notification) {
+            console.warn('Notification API not available');
+            return;
+          }
+          
+          // Check permission safely
+          const permission = window.Notification?.permission;
+          if (permission !== 'granted') {
+            console.warn('Notification permission not granted:', permission);
+            return;
+          }
+          
+          const title = payload.notification?.title || 'New Notification';
+          const body = payload.notification?.body || payload.data?.body || 'You have a new notification';
+          const icon = payload.notification?.icon || payload.fcmOptions?.link || '/placeholder-logo.png';
+          
+          const notification = new window.Notification(title, {
+              body,
+              icon,
+              badge: '/placeholder-logo.png',
+              tag: payload.data?.id || `fcm-${Date.now()}`,
+              requireInteraction: false,
+            });
+
+          // Handle click on notification
+          notification.onclick = (event) => {
+            event.preventDefault();
+            window.focus();
+            
+            // Handle custom data (e.g., navigate to URL)
+            if (payload.data?.url) {
+              window.open(payload.data.url, '_blank');
+            }
+            
+            notification.close();
+          };
+        } catch (error) {
+          console.error('Error showing notification:', error);
+        }
 
         // Handle custom data
         if (payload.data) {
