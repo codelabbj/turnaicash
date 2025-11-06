@@ -12,10 +12,11 @@ import { TRANSACTION_TYPES, getTransactionTypeLabel } from "@/lib/constants"
 interface NetworkStepProps {
   selectedNetwork: Network | null
   onSelect: (network: Network) => void
+  onNext: () => void
   type: "deposit" | "withdrawal"
 }
 
-export function NetworkStep({ selectedNetwork, onSelect, type }: NetworkStepProps) {
+export function NetworkStep({ selectedNetwork, onSelect, onNext, type }: NetworkStepProps) {
   const [networks, setNetworks] = useState<Network[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -49,44 +50,47 @@ export function NetworkStep({ selectedNetwork, onSelect, type }: NetworkStepProp
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Choisir un réseau</CardTitle>
-        <CardDescription>
-          Sélectionnez votre opérateur mobile money pour {type === TRANSACTION_TYPES.DEPOSIT ? "le dépôt" : "le retrait"}
-        </CardDescription>
+    <Card className="overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-lg sm:text-xl">Choisir un réseau</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <CardContent className="p-4 sm:p-6 pt-0">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {networks.map((network) => (
             <Card
               key={network.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
+              className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                 selectedNetwork?.id === network.id
                   ? `ring-2 ${type === TRANSACTION_TYPES.DEPOSIT ? "ring-deposit bg-green-500/10" : "ring-withdrawal bg-blue-500/10"}`
                   : "hover:bg-muted/50"
               }`}
-              onClick={() => onSelect(network)}
+              onClick={() => {
+                onSelect(network)
+                // Auto-advance to next step after a short delay
+                setTimeout(() => {
+                  onNext()
+                }, 300)
+              }}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <SafeImage
                     src={network.image}
                     alt={network.name}
-                    className="w-12 h-12 rounded-lg object-cover"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover flex-shrink-0"
                     fallbackText={network.public_name.charAt(0).toUpperCase()}
                   />
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{network.public_name}</h3>
-                    <p className="text-sm text-muted-foreground">{network.name}</p>
-                    <div className="flex gap-2 mt-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm sm:text-base truncate">{network.public_name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{network.name}</p>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-1">
                       {network.active_for_deposit && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs whitespace-nowrap">
                           {getTransactionTypeLabel(TRANSACTION_TYPES.DEPOSIT)}
                         </Badge>
                       )}
                       {network.active_for_with && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs whitespace-nowrap">
                           {getTransactionTypeLabel(TRANSACTION_TYPES.WITHDRAWAL)}
                         </Badge>
                       )}
@@ -100,7 +104,7 @@ export function NetworkStep({ selectedNetwork, onSelect, type }: NetworkStepProp
         
         {networks.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground break-words">
               Aucun réseau disponible pour {type === TRANSACTION_TYPES.DEPOSIT ? "les dépôts" : "les retraits"}
             </p>
           </div>

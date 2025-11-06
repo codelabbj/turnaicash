@@ -57,6 +57,11 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
       setNewBetId("")
       setIsAddDialogOpen(false)
       toast.success("ID de pari ajouté avec succès")
+      // Auto-select and advance
+      onSelect(newBetIdData)
+      setTimeout(() => {
+        onNext()
+      }, 300)
     } catch (error) {
       toast.error("Erreur lors de l'ajout de l'ID de pari")
     } finally {
@@ -121,39 +126,42 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Choisir votre ID de pari</CardTitle>
-          <CardDescription>
-            Sélectionnez votre compte de paris pour {selectedPlatform.name}
-          </CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Choisir votre ID de pari</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {betIds.map((betId) => (
                 <Card
                   key={betId.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
+                  className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                     selectedBetId?.id === betId.id
                       ? "ring-2 ring-deposit bg-green-500/10"
                       : "hover:bg-muted/50"
                   }`}
-                  onClick={() => onSelect(betId)}
+                  onClick={() => {
+                    onSelect(betId)
+                    // Auto-advance to next step after a short delay
+                    setTimeout(() => {
+                      onNext()
+                    }, 300)
+                  }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{betId.user_app_id}</h3>
-                        <p className="text-sm text-muted-foreground">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm sm:text-base break-all">{betId.user_app_id}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Ajouté le {new Date(betId.created_at).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -161,6 +169,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
                             e.stopPropagation()
                             openEditDialog(betId)
                           }}
+                          className="h-9 w-9 sm:h-10 sm:w-10 p-0"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -171,6 +180,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
                             e.stopPropagation()
                             handleDeleteBetId(betId)
                           }}
+                          className="h-9 w-9 sm:h-10 sm:w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -182,8 +192,8 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
               
               {betIds.length === 0 && (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Aucun ID de pari trouvé</p>
-                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <p className="text-sm text-muted-foreground mb-4">Aucun ID de pari trouvé</p>
+                  <Button onClick={() => setIsAddDialogOpen(true)} className="h-11 sm:h-10 text-sm sm:text-base">
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un ID de pari
                   </Button>
@@ -194,7 +204,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
                 <Button 
                   variant="outline" 
                   onClick={() => setIsAddDialogOpen(true)}
-                  className="w-full"
+                  className="w-full h-11 sm:h-10 text-sm sm:text-base"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un autre ID de pari
@@ -207,29 +217,26 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
 
       {/* Add Bet ID Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ajouter un ID de pari</DialogTitle>
-            <DialogDescription>
-              Entrez votre ID de compte pour {selectedPlatform.name}
-            </DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Ajouter un ID de pari</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="betId">ID de pari</Label>
               <Input
                 id="betId"
                 value={newBetId}
                 onChange={(e) => setNewBetId(e.target.value)}
                 placeholder="Entrez votre ID de pari"
+                className="h-11 sm:h-10 text-base sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleAddBetId} disabled={!newBetId.trim() || isSubmitting}>
+            <Button onClick={handleAddBetId} disabled={!newBetId.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -245,29 +252,26 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
 
       {/* Edit Bet ID Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Modifier l'ID de pari</DialogTitle>
-            <DialogDescription>
-              Modifiez votre ID de compte pour {selectedPlatform.name}
-            </DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Modifier l'ID de pari</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="editBetId">ID de pari</Label>
               <Input
                 id="editBetId"
                 value={newBetId}
                 onChange={(e) => setNewBetId(e.target.value)}
                 placeholder="Entrez votre ID de pari"
+                className="h-11 sm:h-10 text-base sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleEditBetId} disabled={!newBetId.trim() || isSubmitting}>
+            <Button onClick={handleEditBetId} disabled={!newBetId.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

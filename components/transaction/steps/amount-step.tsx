@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
+import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 interface AmountStepProps {
   amount: number
@@ -93,74 +94,78 @@ export function AmountStep({
   const maxAmount = type === "deposit" ? selectedPlatform.max_deposit : selectedPlatform.max_win
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Transaction Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Résumé de la transaction</CardTitle>
-          <CardDescription>Vérifiez les détails avant de continuer</CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Résumé de la transaction</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Type</span>
-            <Badge variant={type === "deposit" ? "default" : "secondary"}>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Type</span>
+            <Badge variant={type === "deposit" ? "default" : "secondary"} className="text-xs sm:text-sm">
               {type === "deposit" ? "Dépôt" : "Retrait"}
             </Badge>
           </div>
           
           <Separator />
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Plateforme</span>
-            <span className="font-medium">{selectedPlatform.name}</span>
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Plateforme</span>
+            <span className="font-medium text-xs sm:text-sm text-right break-words">{selectedPlatform.name}</span>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">ID de pari</span>
-            <span className="font-medium">{selectedBetId.user_app_id}</span>
+          {(selectedPlatform.city || selectedPlatform.street) && (
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground">Adresse</span>
+              <span className="font-medium text-xs sm:text-sm text-right break-words">
+                {[selectedPlatform.city, selectedPlatform.street].filter(Boolean).join(", ")}
+              </span>
+            </div>
+          )}
+          
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">ID de pari</span>
+            <span className="font-medium text-xs sm:text-sm text-right break-all">{selectedBetId.user_app_id}</span>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Réseau</span>
-            <span className="font-medium">{selectedNetwork.public_name}</span>
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Réseau</span>
+            <span className="font-medium text-xs sm:text-sm text-right break-words">{selectedNetwork.public_name}</span>
           </div>
           
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Numéro de téléphone</span>
-            <span className="font-medium">{selectedPhone.phone}</span>
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Téléphone</span>
+            <span className="font-medium text-xs sm:text-sm text-right break-all">{formatPhoneNumberForDisplay(selectedPhone.phone)}</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Amount Input */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Montant de la transaction</CardTitle>
-          <CardDescription>
-            Entrez le montant en FCFA (entre {minAmount.toLocaleString()} et {maxAmount.toLocaleString()} FCFA)
-          </CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Montant de la transaction</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <Label htmlFor="amount">Montant (FCFA)</Label>
               <Input
                 id="amount"
                 type="number"
                 value={amount || ""}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Entrez le montant"
-                className={errors.amount ? "border-red-500" : ""}
+                className={`h-11 sm:h-10 text-base sm:text-sm ${errors.amount ? "border-red-500" : ""}`}
               />
               {errors.amount && (
-                <p className="text-sm text-red-500 mt-1">{errors.amount}</p>
+                <p className="text-xs sm:text-sm text-red-500 mt-1 break-words">{errors.amount}</p>
               )}
             </div>
             
             {amount > 0 && (
               <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Montant saisi:</p>
-                <p className="text-lg font-semibold">
+                <p className="text-xs sm:text-sm text-muted-foreground">Montant saisi:</p>
+                <p className="text-base sm:text-lg font-semibold break-words">
                   {amount.toLocaleString("fr-FR", {
                     style: "currency",
                     currency: "XOF",
@@ -175,26 +180,22 @@ export function AmountStep({
 
       {/* Withdrawal Code (only for withdrawals) */}
       {type === "withdrawal" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Code de retrait</CardTitle>
-            <CardDescription>
-              Entrez votre code de retrait (minimum 4 caractères)
-            </CardDescription>
+        <Card className="overflow-hidden">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Code de retrait</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             <div>
-              <Label htmlFor="withdriwalCode">Code de retrait</Label>
               <Input
                 id="withdriwalCode"
                 type="text"
                 value={withdriwalCode}
                 onChange={(e) => handleWithdriwalCodeChange(e.target.value)}
                 placeholder="Entrez votre code de retrait"
-                className={errors.withdriwalCode ? "border-red-500" : ""}
+                className={`h-11 sm:h-10 text-base sm:text-sm ${errors.withdriwalCode ? "border-red-500" : ""}`}
               />
               {errors.withdriwalCode && (
-                <p className="text-sm text-red-500 mt-1">{errors.withdriwalCode}</p>
+                <p className="text-xs sm:text-sm text-red-500 mt-1 break-words">{errors.withdriwalCode}</p>
               )}
             </div>
           </CardContent>
@@ -202,11 +203,11 @@ export function AmountStep({
       )}
 
       {/* Continue Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <Button 
           onClick={onNext} 
           disabled={!isFormValid()}
-          className="min-w-[120px]"
+          className="w-full sm:w-auto min-w-[120px] h-11 sm:h-10 text-sm sm:text-base"
         >
           Continuer
         </Button>

@@ -18,13 +18,13 @@ export function TransactionProgressBar({ currentStep, totalSteps, type, classNam
 
   return (
     <div className={cn("w-full space-y-2", className)}>
-      <div className="flex justify-between text-sm text-muted-foreground">
+      <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
         <span>Étape {currentStep} sur {totalSteps}</span>
         <span>{Math.round(progress)}%</span>
       </div>
       <Progress 
         value={progress} 
-        className="h-2"
+        className="h-1.5 sm:h-2"
         // Apply custom color via style since Tailwind doesn't support dynamic classes
         style={{
           '--progress-background': type === "deposit" ? '#22c55e' : type === "withdrawal" ? '#3b82f6' : undefined

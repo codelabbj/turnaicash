@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -14,10 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Home, ArrowDownToLine, ArrowUpFromLine, History, Phone, Menu, LogOut, User, Loader2, Bell } from "lucide-react"
+import { Home, ArrowDownToLine, ArrowUpFromLine, History, Phone, LogOut, User, Loader2, Bell } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: Home },
@@ -32,7 +32,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const pathname = usePathname()
   const { user, isLoading, logout } = useAuth()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -58,60 +57,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3 sm:px-4">
           {/* Top row with logo and user menu */}
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Mobile menu */}
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild className="lg:hidden">
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-64 p-0">
-                  <div className="flex flex-col h-full">
-                    <div className="p-6 border-b">
-                      <h2 className="text-lg font-bold">TURNAICASH</h2>
-                    </div>
-                    <nav className="flex-1 p-4 space-y-1">
-                      {navigation.map((item) => {
-                        const isActive = pathname === item.href
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                              isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                          >
-                            <item.icon className="h-5 w-5" />
-                            {item.name}
-                          </Link>
-                        )
-                      })}
-                    </nav>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
+          <div className="flex h-14 sm:h-16 items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link href="/dashboard" className="flex items-center gap-2">
-                <h1 className="text-xl font-bold">TURNAICASH</h1>
+                <Image
+                  src="/Turaincash-logo.png"
+                  alt="TurainCash Logo"
+                  width={40}
+                  height={13}
+                  className="h-auto w-auto max-w-[120px]"
+                  priority
+                />
               </Link>
             </div>
 
             {/* Theme toggle and User menu */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <ThemeToggle />
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary text-primary-foreground">{userInitials}</AvatarFallback>
+                <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full">
+                  <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">{userInitials}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -164,7 +133,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </header>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-6">{children}</main>
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 lg:pb-6">{children}</main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden safe-area-inset-bottom">
+        <div className="flex items-center justify-around h-16 px-1">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full px-1 py-1.5 min-w-0 transition-colors active:bg-muted/50 rounded-lg",
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground",
+                )}
+              >
+                <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary")} />
+                <span className="text-[10px] sm:text-xs font-medium truncate w-full text-center leading-tight">{item.name}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

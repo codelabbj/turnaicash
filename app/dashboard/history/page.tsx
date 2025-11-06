@@ -13,6 +13,7 @@ import type { Transaction } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 export default function TransactionHistoryPage() {
   const { user } = useAuth()
@@ -116,38 +117,38 @@ export default function TransactionHistoryPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Historique des transactions</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Historique des transactions</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
             Consultez toutes vos transactions de dépôt et de retrait
           </p>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
               Filtres
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="relative">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Rechercher par référence..."
+                  placeholder="Rechercher..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10 sm:h-9 text-base sm:text-sm"
                 />
               </div>
               
               <Select value={typeFilter} onValueChange={(value) => handleFilterChange("type", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Type de transaction" />
+                <SelectTrigger className="h-10 sm:h-9 text-base sm:text-sm">
+                  <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les types</SelectItem>
@@ -157,7 +158,7 @@ export default function TransactionHistoryPage() {
               </Select>
               
               <Select value={statusFilter} onValueChange={(value) => handleFilterChange("status", value)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 sm:h-9 text-base sm:text-sm">
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,8 +170,8 @@ export default function TransactionHistoryPage() {
                 </SelectContent>
               </Select>
               
-              <Button variant="outline" onClick={clearFilters}>
-                Effacer les filtres
+              <Button variant="outline" onClick={clearFilters} className="h-10 sm:h-9 text-sm">
+                Effacer
               </Button>
             </div>
           </CardContent>
@@ -178,23 +179,22 @@ export default function TransactionHistoryPage() {
 
         {/* Transactions List */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-base sm:text-lg">
               <span>Transactions ({totalCount})</span>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={fetchTransactions}
-                  disabled={isLoading}
-                  title="Actualiser les données"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchTransactions}
+                disabled={isLoading}
+                className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 self-start sm:self-auto"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline ml-2">Actualiser</span>
+              </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -207,41 +207,41 @@ export default function TransactionHistoryPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2 sm:space-y-3">
                 {transactions.map((transaction) => (
                   <Card key={transaction.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-semibold">#{transaction.reference}</h3>
+                    <CardContent className="p-3 sm:p-4 lg:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold text-sm sm:text-base">#{transaction.reference}</h3>
                             {getTypeBadge(transaction.type_trans)}
                             {getStatusBadge(transaction.status)}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            <p>Plateforme: {transaction.app}</p>
-                            <p>ID de pari: {transaction.user_app_id}</p>
-                            <p>Téléphone: {transaction.phone_number}</p>
+                          <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
+                            <p className="truncate">Plateforme: {transaction.app}</p>
+                            <p className="truncate">ID de pari: {transaction.user_app_id}</p>
+                            <p className="truncate">Téléphone: {formatPhoneNumberForDisplay(transaction.phone_number)}</p>
                             {transaction.withdriwal_code && (
-                              <p>Code de retrait: {transaction.withdriwal_code}</p>
+                              <p className="truncate">Code de retrait: {transaction.withdriwal_code}</p>
                             )}
                           </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <p className="text-lg font-semibold">
+                        <div className="text-left sm:text-right flex-shrink-0 space-y-2">
+                          <p className="text-base sm:text-lg font-semibold">
                             {transaction.amount.toLocaleString("fr-FR", {
                               style: "currency",
                               currency: "XOF",
                               minimumFractionDigits: 0,
                             })}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {format(new Date(transaction.created_at), "dd MMM yyyy à HH:mm", {
                               locale: fr,
                             })}
                           </p>
                           {transaction.error_message && (
-                            <p className="text-sm text-red-500">
+                            <p className="text-xs sm:text-sm text-red-500 break-words">
                               Erreur: {transaction.error_message}
                             </p>
                           )}
@@ -255,8 +255,8 @@ export default function TransactionHistoryPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 mt-4 sm:mt-6">
+                <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   Page {currentPage} sur {totalPages} ({totalCount} transactions)
                 </p>
                 <div className="flex gap-2">
@@ -265,6 +265,7 @@ export default function TransactionHistoryPage() {
                     size="sm"
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
+                    className="h-9 text-xs sm:text-sm"
                   >
                     Précédent
                   </Button>
@@ -273,6 +274,7 @@ export default function TransactionHistoryPage() {
                     size="sm"
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
+                    className="h-9 text-xs sm:text-sm"
                   >
                     Suivant
                   </Button>

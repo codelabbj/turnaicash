@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 const phoneSchema = z.object({
   phone: z.string().min(8, "Numéro de téléphone invalide"),
@@ -203,40 +204,40 @@ export default function PhonesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Phone className="h-8 w-8" />
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+          <Phone className="h-6 w-6 sm:h-8 sm:w-8" />
           Mes numéros et IDs
         </h1>
-        <p className="text-muted-foreground mt-2">Gérez vos numéros de téléphone et IDs de pari</p>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Gérez vos numéros de téléphone et IDs de pari</p>
       </div>
 
       <Tabs defaultValue="phones" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="phones">Numéros de téléphone</TabsTrigger>
-          <TabsTrigger value="appIds">IDs de pari</TabsTrigger>
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="phones" className="flex-1 sm:flex-initial text-xs sm:text-sm">Numéros</TabsTrigger>
+          <TabsTrigger value="appIds" className="flex-1 sm:flex-initial text-xs sm:text-sm">IDs de pari</TabsTrigger>
         </TabsList>
 
         {/* Phone Numbers Tab */}
         <TabsContent value="phones" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-4 sm:p-6">
               <div>
-                <CardTitle>Numéros de téléphone</CardTitle>
-                <CardDescription>Gérez vos numéros de téléphone mobile</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Numéros de téléphone</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Gérez vos numéros de téléphone mobile</CardDescription>
               </div>
               <Dialog open={isPhoneDialogOpen} onOpenChange={setIsPhoneDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditingPhone(null)}>
+                  <Button onClick={() => setEditingPhone(null)} size="sm" className="w-full sm:w-auto h-9 sm:h-10">
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un numéro
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-[95vw] sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{editingPhone ? "Modifier le numéro" : "Ajouter un numéro"}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-lg sm:text-xl">{editingPhone ? "Modifier le numéro" : "Ajouter un numéro"}</DialogTitle>
+                    <DialogDescription className="text-sm">
                       {editingPhone
                         ? "Modifiez les informations de votre numéro"
                         : "Ajoutez un nouveau numéro de téléphone"}
@@ -244,27 +245,28 @@ export default function PhonesPage() {
                   </DialogHeader>
                   <form onSubmit={phoneForm.handleSubmit(handlePhoneSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Numéro de téléphone</Label>
+                      <Label htmlFor="phone" className="text-sm sm:text-base">Numéro de téléphone</Label>
                       <Input
                         id="phone"
                         type="tel"
                         placeholder="+225 01 02 03 04 05"
                         {...phoneForm.register("phone")}
                         disabled={isSubmitting}
+                        className="h-11 sm:h-10 text-base sm:text-sm"
                       />
                       {phoneForm.formState.errors.phone && (
-                        <p className="text-sm text-destructive">{phoneForm.formState.errors.phone.message}</p>
+                        <p className="text-xs sm:text-sm text-destructive">{phoneForm.formState.errors.phone.message}</p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="network">Réseau mobile</Label>
+                      <Label htmlFor="network" className="text-sm sm:text-base">Réseau mobile</Label>
                       <Select
                         onValueChange={(value) => phoneForm.setValue("network", Number.parseInt(value))}
                         defaultValue={editingPhone?.network.toString()}
                         disabled={isSubmitting}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm">
                           <SelectValue placeholder="Sélectionnez un réseau" />
                         </SelectTrigger>
                         <SelectContent>
@@ -276,7 +278,7 @@ export default function PhonesPage() {
                         </SelectContent>
                       </Select>
                       {phoneForm.formState.errors.network && (
-                        <p className="text-sm text-destructive">{phoneForm.formState.errors.network.message}</p>
+                        <p className="text-xs sm:text-sm text-destructive">{phoneForm.formState.errors.network.message}</p>
                       )}
                     </div>
 
@@ -285,11 +287,11 @@ export default function PhonesPage() {
                         type="button"
                         variant="outline"
                         onClick={closePhoneDialog}
-                        className="flex-1 bg-transparent"
+                        className="flex-1 bg-transparent h-11 sm:h-10 text-sm"
                       >
                         Annuler
                       </Button>
-                      <Button type="submit" disabled={isSubmitting} className="flex-1">
+                      <Button type="submit" disabled={isSubmitting} className="flex-1 h-11 sm:h-10 text-sm">
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -306,7 +308,7 @@ export default function PhonesPage() {
                 </DialogContent>
               </Dialog>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -315,46 +317,79 @@ export default function PhonesPage() {
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Smartphone className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Aucun numéro enregistré</p>
-                  <p className="text-sm text-muted-foreground mt-1">Ajoutez votre premier numéro pour commencer</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Ajoutez votre premier numéro pour commencer</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Numéro</TableHead>
-                        <TableHead>Réseau</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userPhones.map((phone) => (
-                        <TableRow key={phone.id}>
-                          <TableCell className="font-medium">{phone.phone}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {networks.find((n) => n.id === phone.network)?.name || "Inconnu"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => openEditPhoneDialog(phone)}>
+                <>
+                  {/* Mobile Card View */}
+                  <div className="block sm:hidden space-y-3">
+                    {userPhones.map((phone) => (
+                      <Card key={phone.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{formatPhoneNumberForDisplay(phone.phone)}</p>
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {networks.find((n) => n.id === phone.network)?.name || "Inconnu"}
+                              </Badge>
+                            </div>
+                            <div className="flex gap-2 ml-2">
+                              <Button variant="ghost" size="icon" onClick={() => openEditPhoneDialog(phone)} className="h-9 w-9">
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setDeleteTarget({ type: "phone", id: phone.id })}
+                                className="h-9 w-9"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
-                          </TableCell>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Numéro</TableHead>
+                          <TableHead>Réseau</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {userPhones.map((phone) => (
+                          <TableRow key={phone.id}>
+                            <TableCell className="font-medium">{formatPhoneNumberForDisplay(phone.phone)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {networks.find((n) => n.id === phone.network)?.name || "Inconnu"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => openEditPhoneDialog(phone)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteTarget({ type: "phone", id: phone.id })}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -363,34 +398,34 @@ export default function PhonesPage() {
         {/* App IDs Tab */}
         <TabsContent value="appIds" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-4 sm:p-6">
               <div>
-                <CardTitle>IDs de pari</CardTitle>
-                <CardDescription>Gérez vos identifiants de plateformes de pari</CardDescription>
+                <CardTitle className="text-base sm:text-lg">IDs de pari</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Gérez vos identifiants de plateformes de pari</CardDescription>
               </div>
               <Dialog open={isAppIdDialogOpen} onOpenChange={setIsAppIdDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditingAppId(null)}>
+                  <Button onClick={() => setEditingAppId(null)} size="sm" className="w-full sm:w-auto h-9 sm:h-10">
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un ID
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-[95vw] sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{editingAppId ? "Modifier l'ID" : "Ajouter un ID"}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-lg sm:text-xl">{editingAppId ? "Modifier l'ID" : "Ajouter un ID"}</DialogTitle>
+                    <DialogDescription className="text-sm">
                       {editingAppId ? "Modifiez votre ID de pari" : "Ajoutez un nouvel ID de pari"}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={appIdForm.handleSubmit(handleAppIdSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="app">Plateforme de pari</Label>
+                      <Label htmlFor="app" className="text-sm sm:text-base">Plateforme de pari</Label>
                       <Select
                         onValueChange={(value) => appIdForm.setValue("app", value)}
                         defaultValue={editingAppId?.app.toString()}
                         disabled={isSubmitting}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm">
                           <SelectValue placeholder="Sélectionnez une plateforme" />
                         </SelectTrigger>
                         <SelectContent>
@@ -402,21 +437,22 @@ export default function PhonesPage() {
                         </SelectContent>
                       </Select>
                       {appIdForm.formState.errors.app && (
-                        <p className="text-sm text-destructive">{appIdForm.formState.errors.app.message}</p>
+                        <p className="text-xs sm:text-sm text-destructive">{appIdForm.formState.errors.app.message}</p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="user_app_id">ID de pari</Label>
+                      <Label htmlFor="user_app_id" className="text-sm sm:text-base">ID de pari</Label>
                       <Input
                         id="user_app_id"
                         type="text"
                         placeholder="Votre ID sur la plateforme"
                         {...appIdForm.register("user_app_id")}
                         disabled={isSubmitting}
+                        className="h-11 sm:h-10 text-base sm:text-sm"
                       />
                       {appIdForm.formState.errors.user_app_id && (
-                        <p className="text-sm text-destructive">{appIdForm.formState.errors.user_app_id.message}</p>
+                        <p className="text-xs sm:text-sm text-destructive">{appIdForm.formState.errors.user_app_id.message}</p>
                       )}
                     </div>
 
@@ -425,11 +461,11 @@ export default function PhonesPage() {
                         type="button"
                         variant="outline"
                         onClick={closeAppIdDialog}
-                        className="flex-1 bg-transparent"
+                        className="flex-1 bg-transparent h-11 sm:h-10 text-sm"
                       >
                         Annuler
                       </Button>
-                      <Button type="submit" disabled={isSubmitting} className="flex-1">
+                      <Button type="submit" disabled={isSubmitting} className="flex-1 h-11 sm:h-10 text-sm">
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -446,7 +482,7 @@ export default function PhonesPage() {
                 </DialogContent>
               </Dialog>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -455,46 +491,79 @@ export default function PhonesPage() {
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Smartphone className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Aucun ID enregistré</p>
-                  <p className="text-sm text-muted-foreground mt-1">Ajoutez votre premier ID pour commencer</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Ajoutez votre premier ID pour commencer</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID de pari</TableHead>
-                        <TableHead>Plateforme</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userAppIds.map((appId) => (
-                        <TableRow key={appId.id}>
-                          <TableCell className="font-medium">{appId.user_app_id}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => openEditAppIdDialog(appId)}>
+                <>
+                  {/* Mobile Card View */}
+                  <div className="block sm:hidden space-y-3">
+                    {userAppIds.map((appId) => (
+                      <Card key={appId.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{appId.user_app_id}</p>
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
+                              </Badge>
+                            </div>
+                            <div className="flex gap-2 ml-2">
+                              <Button variant="ghost" size="icon" onClick={() => openEditAppIdDialog(appId)} className="h-9 w-9">
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setDeleteTarget({ type: "appId", id: appId.id })}
+                                className="h-9 w-9"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
-                          </TableCell>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID de pari</TableHead>
+                          <TableHead>Plateforme</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {userAppIds.map((appId) => (
+                          <TableRow key={appId.id}>
+                            <TableCell className="font-medium">{appId.user_app_id}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => openEditAppIdDialog(appId)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteTarget({ type: "appId", id: appId.id })}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

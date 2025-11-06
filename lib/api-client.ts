@@ -1,4 +1,5 @@
 import api from "./api"
+import { formatPhoneNumber } from "./utils"
 import type {
   AuthResponse,
   Network,
@@ -13,8 +14,13 @@ import type {
 
 export const authApi = {
   login: async (email_or_phone: string, password: string) => {
+    // Format phone number if it looks like a phone (contains digits and possibly +)
+    const formattedInput = /^[\d\s+()-]+$/.test(email_or_phone) 
+      ? formatPhoneNumber(email_or_phone) 
+      : email_or_phone
+    
     const { data } = await api.post<AuthResponse>("/auth/login", {
-      email_or_phone,
+      email_or_phone: formattedInput,
       password,
     })
     return data
@@ -28,7 +34,10 @@ export const authApi = {
     password: string
     re_password: string
   }) => {
-    const { data } = await api.post("/auth/registration", userData)
+    const { data } = await api.post("/auth/registration", {
+      ...userData,
+      phone: formatPhoneNumber(userData.phone),
+    })
     return data
   },
 
@@ -53,7 +62,7 @@ export const phoneApi = {
 
   create: async (phone: string, network: number) => {
     const { data } = await api.post<UserPhone>("/mobcash/user-phone/", {
-      phone,
+      phone: formatPhoneNumber(phone),
       network,
     })
     return data
@@ -61,7 +70,7 @@ export const phoneApi = {
 
   update: async (id: number, phone: string, network: number) => {
     const { data } = await api.patch<UserPhone>(`/mobcash/user-phone/${id}/`, {
-      phone,
+      phone: formatPhoneNumber(phone),
       network,
     })
     return data
@@ -139,7 +148,10 @@ export const transactionApi = {
     network: number
     source: string
   }) => {
-    const { data } = await api.post<Transaction>("/mobcash/transaction-deposit", depositData)
+    const { data } = await api.post<Transaction>("/mobcash/transaction-deposit", {
+      ...depositData,
+      phone_number: formatPhoneNumber(depositData.phone_number),
+    })
     return data
   },
 
@@ -152,7 +164,10 @@ export const transactionApi = {
     withdriwal_code: string
     source: string
   }) => {
-    const { data } = await api.post<Transaction>("/mobcash/transaction-withdrawal", withdrawalData)
+    const { data } = await api.post<Transaction>("/mobcash/transaction-withdrawal", {
+      ...withdrawalData,
+      phone_number: formatPhoneNumber(withdrawalData.phone_number),
+    })
     return data
   },
 }

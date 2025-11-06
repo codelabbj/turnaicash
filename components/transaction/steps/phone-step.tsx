@@ -10,6 +10,7 @@ import { Loader2, Plus, Edit, Trash2 } from "lucide-react"
 import { phoneApi } from "@/lib/api-client"
 import type { UserPhone, Network } from "@/lib/types"
 import { toast } from "react-hot-toast"
+import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 interface PhoneStepProps {
   selectedNetwork: Network | null
@@ -59,6 +60,11 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
       setNewPhone("")
       setIsAddDialogOpen(false)
       toast.success("Numéro de téléphone ajouté avec succès")
+      // Auto-select and advance
+      onSelect(newPhoneData)
+      setTimeout(() => {
+        onNext()
+      }, 300)
     } catch (error) {
       toast.error("Erreur lors de l'ajout du numéro de téléphone")
     } finally {
@@ -123,39 +129,42 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Choisir un numéro de téléphone</CardTitle>
-          <CardDescription>
-            Sélectionnez votre numéro {selectedNetwork.public_name} pour la transaction
-          </CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Choisir un numéro de téléphone</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {phones.map((phone) => (
                 <Card
                   key={phone.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
+                  className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                     selectedPhone?.id === phone.id
                       ? "ring-2 ring-deposit bg-green-500/10"
                       : "hover:bg-muted/50"
                   }`}
-                  onClick={() => onSelect(phone)}
+                  onClick={() => {
+                    onSelect(phone)
+                    // Auto-advance to next step after a short delay
+                    setTimeout(() => {
+                      onNext()
+                    }, 300)
+                  }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{phone.phone}</h3>
-                        <p className="text-sm text-muted-foreground">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm sm:text-base break-all">{formatPhoneNumberForDisplay(phone.phone)}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Ajouté le {new Date(phone.created_at).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -163,6 +172,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
                             e.stopPropagation()
                             openEditDialog(phone)
                           }}
+                          className="h-9 w-9 sm:h-10 sm:w-10 p-0"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -173,6 +183,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
                             e.stopPropagation()
                             handleDeletePhone(phone)
                           }}
+                          className="h-9 w-9 sm:h-10 sm:w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -184,8 +195,8 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
               
               {phones.length === 0 && (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Aucun numéro de téléphone trouvé</p>
-                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <p className="text-sm text-muted-foreground mb-4">Aucun numéro de téléphone trouvé</p>
+                  <Button onClick={() => setIsAddDialogOpen(true)} className="h-11 sm:h-10 text-sm sm:text-base">
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un numéro
                   </Button>
@@ -196,7 +207,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
                 <Button 
                   variant="outline" 
                   onClick={() => setIsAddDialogOpen(true)}
-                  className="w-full"
+                  className="w-full h-11 sm:h-10 text-sm sm:text-base"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un autre numéro
@@ -209,29 +220,26 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
 
       {/* Add Phone Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ajouter un numéro de téléphone</DialogTitle>
-            <DialogDescription>
-              Entrez votre numéro {selectedNetwork.public_name}
-            </DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Ajouter un numéro de téléphone</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="phone">Numéro de téléphone</Label>
               <Input
                 id="phone"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="Ex: +225 07 12 34 56 78"
+                className="h-11 sm:h-10 text-base sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleAddPhone} disabled={!newPhone.trim() || isSubmitting}>
+            <Button onClick={handleAddPhone} disabled={!newPhone.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -247,29 +255,26 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
 
       {/* Edit Phone Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Modifier le numéro de téléphone</DialogTitle>
-            <DialogDescription>
-              Modifiez votre numéro {selectedNetwork.public_name}
-            </DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Modifier le numéro de téléphone</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="editPhone">Numéro de téléphone</Label>
               <Input
                 id="editPhone"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="Ex: +225 07 12 34 56 78"
+                className="h-11 sm:h-10 text-base sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleEditPhone} disabled={!newPhone.trim() || isSubmitting}>
+            <Button onClick={handleEditPhone} disabled={!newPhone.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Loader2, CheckCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
+import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 interface TransactionData {
   amount: number
@@ -122,7 +123,7 @@ export function ConfirmationDialog({
             
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Numéro de téléphone</span>
-              <span className="font-medium">{transactionData.phone_number}</span>
+              <span className="font-medium">{formatPhoneNumberForDisplay(transactionData.phone_number)}</span>
             </div>
             
             {type === "withdrawal" && transactionData.withdriwal_code && (

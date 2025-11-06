@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { TransactionProgressBar } from "@/components/transaction/progress-bar"
-import { StepNavigation } from "@/components/transaction/step-navigation"
 import { ConfirmationDialog } from "@/components/transaction/confirmation-dialog"
 import { PlatformStep } from "@/components/transaction/steps/platform-step"
 import { BetIdStep } from "@/components/transaction/steps/bet-id-step"
@@ -14,6 +13,8 @@ import { AmountStep } from "@/components/transaction/steps/amount-step"
 import { transactionApi } from "@/lib/api-client"
 import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
 import { toast } from "react-hot-toast"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft } from "lucide-react"
 
 export default function WithdrawalPage() {
   const router = useRouter()
@@ -126,6 +127,7 @@ export default function WithdrawalPage() {
           <NetworkStep
             selectedNetwork={selectedNetwork}
             onSelect={setSelectedNetwork}
+            onNext={handleNext}
             type="withdrawal"
           />
         )
@@ -159,14 +161,11 @@ export default function WithdrawalPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="space-y-8">
+    <div className="max-w-4xl mx-auto w-full px-3 sm:px-4">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Effectuer un retrait</h1>
-          <p className="text-muted-foreground mt-2">
-            Suivez les étapes pour retirer vos gains de votre compte de paris
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Effectuer un retrait</h1>
       </div>
 
         {/* Progress Bar */}
@@ -177,19 +176,22 @@ export default function WithdrawalPage() {
         />
 
         {/* Current Step */}
-        <div className="min-h-[400px]">
+        <div className="min-h-[250px] sm:min-h-[300px] lg:min-h-[400px] overflow-x-hidden">
           {renderCurrentStep()}
               </div>
 
-        {/* Navigation */}
-        {currentStep < 5 && (
-          <StepNavigation
-            currentStep={currentStep}
-            totalSteps={totalSteps}
-            onPrevious={handlePrevious}
-            onNext={handleNext}
-            isNextDisabled={!isStepValid()}
-          />
+        {/* Navigation - Show Previous button for steps 2-5 */}
+        {currentStep > 1 && currentStep <= 5 && (
+          <div className="flex justify-start pt-4 sm:pt-6">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              className="flex items-center gap-2 w-full sm:w-auto h-11 sm:h-10"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-sm sm:text-base">Précédent</span>
+            </Button>
+          </div>
         )}
 
         {/* Confirmation Dialog */}
