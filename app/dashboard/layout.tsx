@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 const navigation = [
-  { name: "Tableau de bord", href: "/dashboard", icon: Home },
+  { name: "Acceuil", href: "/dashboard", icon: Home },
   { name: "Dépôt", href: "/dashboard/deposit", icon: ArrowDownToLine },
   { name: "Retrait", href: "/dashboard/withdrawal", icon: ArrowUpFromLine },
   { name: "Historique", href: "/dashboard/history", icon: History },

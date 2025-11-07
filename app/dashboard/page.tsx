@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw } from "lucide-react"
+import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi } from "@/lib/api-client"
@@ -77,6 +77,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <>
     <div className="space-y-6 sm:space-y-8">
       {/* Welcome section */}
       <div>
@@ -120,16 +121,16 @@ export default function DashboardPage() {
       <div>
         {/* <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Actions rapides</h2> */}
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9">
+          <Button asChild size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9 bg-[#16a34a] hover:bg-[#15803d] text-white">
             <Link href="/dashboard/deposit" className="flex items-center justify-center gap-2">
-              <ArrowDownToLine className="h-4 w-4 text-deposit" />
-              <span className="text-xs sm:text-sm">Dépôt</span>
+              <ArrowDownToLine className="h-4 w-4" />
+              <span className="text-xs sm:text-sm font-medium">Dépôt</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9">
+          <Button asChild size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white">
             <Link href="/dashboard/withdrawal" className="flex items-center justify-center gap-2">
-              <ArrowUpFromLine className="h-4 w-4 text-withdrawal" />
-              <span className="text-xs sm:text-sm">Retrait</span>
+              <ArrowUpFromLine className="h-4 w-4" />
+              <span className="text-xs sm:text-sm font-medium">Retrait</span>
             </Link>
           </Button>
         </div>
@@ -139,7 +140,8 @@ export default function DashboardPage() {
       <div className="w-full">
         <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors">
           <CardContent className="p-0">
-            <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] bg-muted/30">
+            <div className="relative w-full aspect-[40/9] sm:aspect-[48/9] bg-muted/30">
+            {/* <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30"> */}
               {!adImageError && (
                 <Image
                   src="/ad-placeholder.png"
@@ -252,5 +254,16 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+
+    <Button
+      asChild
+      className="fixed right-4 bottom-24 sm:bottom-10 sm:right-8 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-primary/50 transition transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+    >
+      <Link href="/dashboard/support" aria-label="Ouvrir le chat">
+        <MessageCircle className="h-6 w-6" />
+        <span className="sr-only">Ouvrir le chat</span>
+      </Link>
+    </Button>
+    </>
   )
 }
