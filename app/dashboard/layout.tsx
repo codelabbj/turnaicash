@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Home, ArrowDownToLine, ArrowUpFromLine, History, Phone, LogOut, User, Loader2, Bell } from "lucide-react"
+import { Home, ArrowDownToLine, ArrowUpFromLine, Ticket, Phone, LogOut, User, Loader2, Bell } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -23,7 +23,7 @@ const navigation = [
   { name: "Acceuil", href: "/dashboard", icon: Home },
   { name: "Dépôt", href: "/dashboard/deposit", icon: ArrowDownToLine },
   { name: "Retrait", href: "/dashboard/withdrawal", icon: ArrowUpFromLine },
-  { name: "Historique", href: "/dashboard/history", icon: History },
+  { name: "Coupon", href: "/dashboard/coupon", icon: Ticket },
   { name: "Mes numéros", href: "/dashboard/phones", icon: Phone },
   { name: "Notifications", href: "/notifications", icon: Bell },
 ]

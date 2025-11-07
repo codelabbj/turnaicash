@@ -5,7 +5,12 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageCircle } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi } from "@/lib/api-client"
@@ -20,6 +25,7 @@ export default function DashboardPage() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
   const [adImageError, setAdImageError] = useState(false)
+  const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -255,15 +261,59 @@ export default function DashboardPage() {
       </div>
     </div>
 
-    <Button
-      asChild
-      className="fixed right-4 bottom-24 sm:bottom-10 sm:right-8 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-primary/50 transition transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
-    >
-      <Link href="/dashboard/support" aria-label="Ouvrir le chat">
-        <MessageCircle className="h-6 w-6" />
-        <span className="sr-only">Ouvrir le chat</span>
-      </Link>
-    </Button>
+    <Popover open={isChatPopoverOpen} onOpenChange={setIsChatPopoverOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          className="fixed right-4 bottom-24 sm:bottom-10 sm:right-8 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-primary/50 transition transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+          aria-label="Ouvrir le chat"
+        >
+          <MessageSquare className="h-6 w-6" />
+          <span className="sr-only">Ouvrir le chat</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent 
+        className="w-56 p-2 mb-2 mr-2" 
+        align="end"
+        side="top"
+      >
+        <div className="space-y-1">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-auto py-3"
+            onClick={() => {
+              // Replace with your WhatsApp number (format: country code + number without + or spaces)
+              window.open("https://wa.me/22912345678", "_blank")
+              setIsChatPopoverOpen(false)
+            }}
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white">
+              <Send className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-medium text-sm">WhatsApp</span>
+              <span className="text-xs text-muted-foreground">Chat sur WhatsApp</span>
+            </div>
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-auto py-3"
+            onClick={() => {
+              // Replace with your Telegram username
+              window.open("https://t.me/your_username", "_blank")
+              setIsChatPopoverOpen(false)
+            }}
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white">
+              <Send className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-medium text-sm">Telegram</span>
+              <span className="text-xs text-muted-foreground">Chat sur Telegram</span>
+            </div>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
     </>
   )
 }
