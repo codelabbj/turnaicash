@@ -9,6 +9,7 @@ import { Bell, Check, RefreshCw, Loader2, ArrowLeft, MessageSquare } from 'lucid
 import { notificationApi } from '@/lib/api-client';
 import { Notification } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import { fcmService } from '@/lib/firebase';
 import type { MessagePayload } from 'firebase/messaging';
@@ -49,7 +50,7 @@ export default function NotificationsPage() {
       setPage(pageNum);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
+      toast.error('Échec du chargement des notifications');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -93,8 +94,8 @@ export default function NotificationsPage() {
       
       const fcmNotification: FCMNotification = {
         id: `fcm-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        title: payload.notification?.title || 'New Notification',
-        content: payload.notification?.body || payload.data?.body || 'You have a new notification',
+        title: payload.notification?.title || 'Nouvelle notification',
+        content: payload.notification?.body || payload.data?.body || 'Vous avez une nouvelle notification',
         created_at: new Date().toISOString(),
         is_read: false,
         is_fcm: true,
@@ -183,7 +184,7 @@ export default function NotificationsPage() {
       );
       localStorage.setItem('fcm_notifications', JSON.stringify(updated));
       
-      toast.success('Notification marked as read');
+      toast.success('Notification marquée comme lue');
       return;
     }
 
@@ -195,16 +196,16 @@ export default function NotificationsPage() {
           notif.id === notificationId ? { ...notif, is_read: true } : notif
         )
       );
-      toast.success('Notification marked as read');
+      toast.success('Notification marquée comme lue');
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      toast.error('Failed to update notification');
+      toast.error('Échec de la mise à jour de la notification');
     }
   };
 
   const formatDate = (dateString: string) => {
     try {
-      return format(parseISO(dateString), 'PPP p');
+      return format(parseISO(dateString), 'PPP p', { locale: fr });
     } catch {
       return dateString;
     }
@@ -235,7 +236,7 @@ export default function NotificationsPage() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Retour
             </Button>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -243,14 +244,14 @@ export default function NotificationsPage() {
                 <h1 className="text-3xl font-bold">Notifications</h1>
               </div>
               <p className="text-muted-foreground">
-                Your notification center
+                Votre centre de notifications
               </p>
             </div>
           </div>
           
           {unreadCount > 0 && (
             <Badge variant="secondary" className="text-lg px-3 py-1">
-              {unreadCount} unread
+              {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
             </Badge>
           )}
         </div>
@@ -266,12 +267,12 @@ export default function NotificationsPage() {
             {isRefreshing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing...
+                Actualisation...
               </>
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
+                Actualiser
               </>
             )}
           </Button>
@@ -287,7 +288,7 @@ export default function NotificationsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Bell className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-center">
-                No notifications yet
+                Aucune notification pour le moment
               </p>
             </CardContent>
           </Card>
@@ -320,7 +321,7 @@ export default function NotificationsPage() {
                             )}
                             {isFCM && (
                               <Badge variant="outline" className="text-xs">
-                                Push
+                                Notification push
                               </Badge>
                             )}
                           </div>
@@ -332,7 +333,7 @@ export default function NotificationsPage() {
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span>{formatDate(notification.created_at)}</span>
                             {'reference' in notification && notification.reference && (
-                              <span>Ref: {notification.reference}</span>
+                              <span>Réf. : {notification.reference}</span>
                             )}
                           </div>
                         </div>
@@ -345,7 +346,7 @@ export default function NotificationsPage() {
                             className="flex items-center gap-2"
                           >
                             <Check className="h-4 w-4" />
-                            <span className="hidden sm:inline">Mark as read</span>
+                            <span className="hidden sm:inline">Marquer comme lu</span>
                           </Button>
                         )}
                       </div>
@@ -363,7 +364,7 @@ export default function NotificationsPage() {
                   onClick={() => fetchNotifications(page - 1)}
                   disabled={!hasPrevious || isLoading}
                 >
-                  Previous
+                  Précédent
                 </Button>
                 <span className="text-sm text-muted-foreground">
                   Page {page}
@@ -373,7 +374,7 @@ export default function NotificationsPage() {
                   onClick={() => fetchNotifications(page + 1)}
                   disabled={!hasNext || isLoading}
                 >
-                  Next
+                  Suivant
                 </Button>
               </div>
             )}

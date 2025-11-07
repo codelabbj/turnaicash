@@ -140,8 +140,8 @@ export default function DashboardPage() {
       <div className="w-full">
         <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors">
           <CardContent className="p-0">
-            <div className="relative w-full aspect-[40/9] sm:aspect-[48/9] bg-muted/30">
-            {/* <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30"> */}
+            {/* <div className="relative w-full aspect-[40/9] sm:aspect-[48/9] bg-muted/30"> */}
+            <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30">
               {!adImageError && (
                 <Image
                   src="/ad-placeholder.png"
