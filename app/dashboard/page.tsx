@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send } from "lucide-react"
+import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi } from "@/lib/api-client"
@@ -92,6 +92,39 @@ export default function DashboardPage() {
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Gérez vos dépôts et retraits en toute simplicité</p>
       </div>
+
+      {/* Mobile App Download */}
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary/20">
+                <Smartphone className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base sm:text-lg">Téléchargez l'application mobile</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                  Accédez à vos services depuis votre téléphone
+                </p>
+              </div>
+            </div>
+            <Button
+              asChild
+              size="sm"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <a
+                href="/app-v1.0.4.apk"
+                download="TurainCash-v1.0.4.apk"
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                <span className="text-xs sm:text-sm font-medium">Télécharger</span>
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Balance card */}
       {/* <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
