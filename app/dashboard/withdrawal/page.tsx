@@ -13,6 +13,7 @@ import { AmountStep } from "@/components/transaction/steps/amount-step"
 import { transactionApi } from "@/lib/api-client"
 import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
 import { toast } from "react-hot-toast"
+import { extractTimeErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 
@@ -76,8 +77,14 @@ export default function WithdrawalPage() {
       
       toast.success("Retrait initié avec succès!")
       router.push("/dashboard")
-    } catch (error) {
-      toast.error("Erreur lors de la création du retrait")
+    } catch (error: any) {
+      // Check for rate limit error (error_time_message)
+      const timeErrorMessage = extractTimeErrorMessage(error)
+      if (timeErrorMessage) {
+        toast.error(timeErrorMessage)
+      } else {
+        toast.error("Erreur lors de la création du retrait")
+      }
     } finally {
       setIsSubmitting(false)
     }

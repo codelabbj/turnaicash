@@ -150,3 +150,9 @@ export interface Bonus {
   transaction: number | null
   user: string
 }
+
+export interface SearchUserResponse {
+  UserId: number
+  Name: string
+  CurrencyId: number
+}

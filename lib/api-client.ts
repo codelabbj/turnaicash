@@ -10,6 +10,7 @@ import type {
   PaginatedResponse,
   Notification,
   Bonus,
+  SearchUserResponse,
 } from "./types"
 
 export const authApi = {
@@ -112,6 +113,14 @@ export const userAppIdApi = {
 
   delete: async (id: number) => {
     await api.delete(`/mobcash/user-app-id/${id}/`)
+  },
+
+  searchUser: async (appId: string, betId: string) => {
+    const { data } = await api.post<SearchUserResponse>("/mobcash/search-user", {
+      app_id: appId,
+      userid: betId,
+    })
+    return data
   },
 }
 

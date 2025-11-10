@@ -13,8 +13,17 @@ import { AmountStep } from "@/components/transaction/steps/amount-step"
 import { transactionApi } from "@/lib/api-client"
 import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
 import { toast } from "react-hot-toast"
+import { extractTimeErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function DepositPage() {
   const router = useRouter()
@@ -34,6 +43,10 @@ export default function DepositPage() {
   // Confirmation dialog
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Transaction link modal
+  const [isTransactionLinkModalOpen, setIsTransactionLinkModalOpen] = useState(false)
+  const [transactionLink, setTransactionLink] = useState<string | null>(null)
 
   // Redirect if not authenticated
   if (!user) {
@@ -63,7 +76,7 @@ export default function DepositPage() {
 
     setIsSubmitting(true)
     try {
-      await transactionApi.createDeposit({
+      const response = await transactionApi.createDeposit({
         amount,
         phone_number: selectedPhone.phone,
         app: selectedPlatform.id,
@@ -73,11 +86,34 @@ export default function DepositPage() {
       })
       
       toast.success("Dépôt initié avec succès!")
-      router.push("/dashboard")
-    } catch (error) {
-      toast.error("Erreur lors de la création du dépôt")
+      
+      // Check if transaction_link exists in the response
+      if (response.transaction_link) {
+        setTransactionLink(response.transaction_link)
+        setIsTransactionLinkModalOpen(true)
+        setIsConfirmationOpen(false)
+      } else {
+        router.push("/dashboard")
+      }
+    } catch (error: any) {
+      // Check for rate limit error (error_time_message)
+      const timeErrorMessage = extractTimeErrorMessage(error)
+      if (timeErrorMessage) {
+        toast.error(timeErrorMessage)
+      } else {
+        toast.error("Erreur lors de la création du dépôt")
+      }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleContinueTransaction = () => {
+    if (transactionLink) {
+      window.open(transactionLink, "_blank", "noopener,noreferrer")
+      setIsTransactionLinkModalOpen(false)
+      setTransactionLink(null)
+      router.push("/dashboard")
     }
   }
 
@@ -208,6 +244,33 @@ export default function DepositPage() {
           networkName={selectedNetwork?.public_name || ""}
           isLoading={isSubmitting}
         />
+
+        {/* Transaction Link Modal */}
+        <Dialog open={isTransactionLinkModalOpen} onOpenChange={setIsTransactionLinkModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Continuer la transaction</DialogTitle>
+              <DialogDescription>
+                Cliquez sur continuer pour continuer la transaction
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsTransactionLinkModalOpen(false)
+                  setTransactionLink(null)
+                  router.push("/dashboard")
+                }}
+              >
+                Annuler
+              </Button>
+              <Button onClick={handleContinueTransaction}>
+                Continuer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
               </div>
     </div>
   )

@@ -54,6 +54,11 @@ api.interceptors.response.use(
       }
     }
 
+    // Skip showing toast for error_time_message - let page-level handlers show formatted message
+    if (error.response?.data?.error_time_message) {
+      return Promise.reject(error)
+    }
+
     const defaultLang = "fr"
     const fallback =
       defaultLang === "fr" ? "Une erreur est survenue. Veuillez réessayer." : "An unexpected error occurred."
