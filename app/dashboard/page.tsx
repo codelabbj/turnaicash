@@ -114,8 +114,8 @@ export default function DashboardPage() {
               className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <a
-                href="/app-v1.0.4.apk"
-                download="TurainCash-v1.0.4.apk"
+                href="/app-v1.0.5.apk"
+                download="TurainCash-v1.0.5.apk"
                 className="flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
