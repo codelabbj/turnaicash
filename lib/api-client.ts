@@ -14,6 +14,7 @@ import type {
   Advertisement,
   Settings,
   Coupon,
+  User,
 } from "./types"
 
 export const authApi = {
@@ -53,6 +54,37 @@ export const authApi = {
 
   refreshToken: async (refresh: string) => {
     const { data } = await api.post("/auth/token/refresh/", { refresh })
+    return data
+  },
+
+  getProfile: async () => {
+    const { data } = await api.get<User>("/auth/me")
+    return data
+  },
+
+  updateProfile: async (profileData: {
+    first_name: string
+    last_name: string
+    email: string
+    phone: string
+  }) => {
+    const { data } = await api.post<User>("/auth/edit", {
+      ...profileData,
+      phone: formatPhoneNumber(profileData.phone),
+    })
+    return data
+  },
+
+  changePassword: async (passwordData: {
+    old_password: string
+    new_password: string
+    confirm_new_password: string
+  }) => {
+    const { data } = await api.post("/auth/change_password", {
+      old_password: passwordData.old_password,
+      new_password: passwordData.new_password,
+      confirm_new_password: passwordData.confirm_new_password,
+    })
     return data
   },
 }
