@@ -13,8 +13,8 @@ import {
 import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { transactionApi } from "@/lib/api-client"
-import type { Transaction } from "@/lib/types"
+import { transactionApi, advertisementApi } from "@/lib/api-client"
+import type { Transaction, Advertisement } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -24,25 +24,10 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
+  const [advertisement, setAdvertisement] = useState<Advertisement | null>(null)
+  const [isLoadingAd, setIsLoadingAd] = useState(true)
   const [adImageError, setAdImageError] = useState(false)
   const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      fetchRecentTransactions()
-    }
-  }, [user])
-
-  // Refetch data when the page gains focus
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user) {
-        fetchRecentTransactions()
-      }
-    }
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [user])
 
   const fetchRecentTransactions = async () => {
     try {
@@ -58,6 +43,55 @@ export default function DashboardPage() {
     } finally {
       setIsLoadingTransactions(false)
     }
+  }
+
+  const fetchAdvertisement = async () => {
+    try {
+      setIsLoadingAd(true)
+      const data = await advertisementApi.get()
+      // Check if response has content (not empty)
+      // An empty response could be {}, null, undefined, or an object without image/image_url
+      if (data && (data.image || data.image_url)) {
+        setAdvertisement(data)
+      } else {
+        // Empty response - show placeholder
+        setAdvertisement(null)
+      }
+    } catch (error) {
+      console.error("Error fetching advertisement:", error)
+      // On error, show placeholder
+      setAdvertisement(null)
+    } finally {
+      setIsLoadingAd(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      fetchRecentTransactions()
+      fetchAdvertisement()
+    }
+  }, [user])
+
+  // Refetch data when the page gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchRecentTransactions()
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user])
+
+  const getAdvertisementImageUrl = () => {
+    if (!advertisement) return null
+    return advertisement.image_url || advertisement.image || null
+  }
+
+  const getAdvertisementLink = () => {
+    if (!advertisement) return null
+    return advertisement.url || advertisement.link || null
   }
 
   const getStatusBadge = (status: Transaction["status"]) => {
@@ -179,18 +213,41 @@ export default function DashboardPage() {
       <div className="w-full">
         <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors">
           <CardContent className="p-0">
-            {/* <div className="relative w-full aspect-[40/9] sm:aspect-[48/9] bg-muted/30"> */}
             <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30">
-              {!adImageError && (
-                <Image
-                  src="/ad-placeholder.png"
-                  alt="Publicité"
-                  fill
-                  className="object-cover"
-                  onError={() => setAdImageError(true)}
-                />
-              )}
-              {adImageError && (
+              {isLoadingAd ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : getAdvertisementImageUrl() && !adImageError ? (
+                (() => {
+                  const imageUrl = getAdvertisementImageUrl()
+                  const link = getAdvertisementLink()
+                  if (!imageUrl) return null
+                  
+                  const imageElement = (
+                    <Image
+                      src={imageUrl}
+                      alt={advertisement?.title || "Publicité"}
+                      fill
+                      className={link ? "object-cover cursor-pointer" : "object-cover"}
+                      onError={() => setAdImageError(true)}
+                    />
+                  )
+                  
+                  return link ? (
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full h-full"
+                    >
+                      {imageElement}
+                    </a>
+                  ) : (
+                    imageElement
+                  )
+                })()
+              ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm">
                   <div className="text-center p-4">
                     <p className="text-sm sm:text-base text-muted-foreground font-medium">Espace publicitaire</p>

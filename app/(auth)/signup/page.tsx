@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -10,31 +10,59 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { authApi } from "@/lib/api-client"
+import { authApi, settingsApi } from "@/lib/api-client"
 import { toast } from "react-hot-toast"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
-const signupSchema = z
-  .object({
-    first_name: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
-    last_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-    email: z.string().email("Email invalide"),
-    phone: z.string().min(8, "Numéro de téléphone invalide"),
-    password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-    re_password: z.string().min(6, "Confirmation requise"),
-  })
-  .refine((data) => data.password === data.re_password, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["re_password"],
-  })
+const baseSignupSchema = z.object({
+  first_name: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
+  last_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  email: z.string().email("Email invalide"),
+  phone: z.string().min(8, "Numéro de téléphone invalide"),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  re_password: z.string().min(6, "Confirmation requise"),
+})
 
-type SignupFormData = z.infer<typeof signupSchema>
+type SignupFormData = z.infer<typeof baseSignupSchema> & {
+  referral_code?: string
+}
 
 export default function SignupPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [referralBonusEnabled, setReferralBonusEnabled] = useState(false)
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await settingsApi.get()
+        setReferralBonusEnabled(settings?.referral_bonus === true)
+      } catch (error) {
+        console.error("Error fetching settings:", error)
+        setReferralBonusEnabled(false)
+      } finally {
+        setIsLoadingSettings(false)
+      }
+    }
+    fetchSettings()
+  }, [])
+
+  const signupSchema = referralBonusEnabled
+    ? baseSignupSchema
+        .extend({
+          referral_code: z.string().optional(),
+        })
+        .refine((data) => data.password === data.re_password, {
+          message: "Les mots de passe ne correspondent pas",
+          path: ["re_password"],
+        })
+    : baseSignupSchema.refine((data) => data.password === data.re_password, {
+        message: "Les mots de passe ne correspondent pas",
+        path: ["re_password"],
+      })
 
   const {
     register,
@@ -47,7 +75,21 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true)
     try {
-      await authApi.register(data)
+      const registrationData: any = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+        re_password: data.re_password,
+      }
+      
+      // Only include referral_code if referral bonus is enabled and code is provided
+      if (referralBonusEnabled && data.referral_code) {
+        registrationData.referral_code = data.referral_code
+      }
+      
+      await authApi.register(registrationData)
       toast.success("Compte créé avec succès! Veuillez vous connecter.")
       router.push("/login")
     } catch (error) {
@@ -56,6 +98,16 @@ export default function SignupPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isLoadingSettings) {
+    return (
+      <Card className="border-border/50 shadow-xl">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -163,6 +215,21 @@ export default function SignupPage() {
             </div>
             {errors.re_password && <p className="text-xs sm:text-sm text-destructive">{errors.re_password.message}</p>}
           </div>
+
+          {referralBonusEnabled && (
+            <div className="space-y-2">
+              <Label htmlFor="referral_code" className="text-sm sm:text-base">Code de parrainage (optionnel)</Label>
+              <Input
+                id="referral_code"
+                type="text"
+                placeholder="Entrez un code de parrainage"
+                {...register("referral_code")}
+                disabled={isLoading}
+                className="h-11 sm:h-10 text-base sm:text-sm"
+              />
+              {errors.referral_code && <p className="text-xs sm:text-sm text-destructive">{errors.referral_code.message}</p>}
+            </div>
+          )}
 
           <Button type="submit" className="w-full h-11 sm:h-10 text-base sm:text-sm font-medium" disabled={isLoading}>
             {isLoading ? (

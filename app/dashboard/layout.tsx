@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -14,12 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Home, ArrowDownToLine, ArrowUpFromLine, Ticket, Phone, LogOut, User, Loader2, Bell } from "lucide-react"
+import { Home, ArrowDownToLine, ArrowUpFromLine, Ticket, Phone, LogOut, User, Loader2, Bell, Gift } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { settingsApi } from "@/lib/api-client"
 
-const navigation = [
+const baseNavigation = [
   { name: "Acceuil", href: "/dashboard", icon: Home },
   { name: "Dépôt", href: "/dashboard/deposit", icon: ArrowDownToLine },
   { name: "Retrait", href: "/dashboard/withdrawal", icon: ArrowUpFromLine },
@@ -32,6 +33,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const pathname = usePathname()
   const { user, isLoading, logout } = useAuth()
+  const [referralBonusEnabled, setReferralBonusEnabled] = useState(false)
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await settingsApi.get()
+        setReferralBonusEnabled(settings?.referral_bonus === true)
+      } catch (error) {
+        console.error("Error fetching settings:", error)
+        setReferralBonusEnabled(false)
+      } finally {
+        setIsLoadingSettings(false)
+      }
+    }
+    if (user) {
+      fetchSettings()
+    }
+  }, [user])
+
+  const navigation = referralBonusEnabled
+    ? [
+        ...baseNavigation,
+        { name: "Bonus", href: "/dashboard/bonus", icon: Gift },
+      ]
+    : baseNavigation
 
   useEffect(() => {
     if (!isLoading && !user) {

@@ -156,3 +156,26 @@ export interface SearchUserResponse {
   Name: string
   CurrencyId: number
 }
+
+export interface Advertisement {
+  id?: number
+  image?: string
+  image_url?: string
+  url?: string
+  link?: string
+  title?: string
+  description?: string
+  [key: string]: any // Allow for flexible response structure
+}
+
+export interface Settings {
+  referral_bonus?: boolean
+  [key: string]: any // Allow for flexible response structure
+}
+
+export interface Coupon {
+  id: number
+  created_at: string
+  code: string
+  bet_app: string
+}

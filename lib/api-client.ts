@@ -11,6 +11,9 @@ import type {
   Notification,
   Bonus,
   SearchUserResponse,
+  Advertisement,
+  Settings,
+  Coupon,
 } from "./types"
 
 export const authApi = {
@@ -34,11 +37,17 @@ export const authApi = {
     phone: string
     password: string
     re_password: string
+    referral_code?: string
   }) => {
-    const { data } = await api.post("/auth/registration", {
+    const payload: any = {
       ...userData,
       phone: formatPhoneNumber(userData.phone),
-    })
+    }
+    // Only include referral_code if it's provided
+    if (userData.referral_code) {
+      payload.referral_code = userData.referral_code
+    }
+    const { data } = await api.post("/auth/registration", payload)
     return data
   },
 
@@ -191,6 +200,27 @@ export const notificationApi = {
 export const bonusApi = {
   getAll: async (page = 1) => {
     const { data } = await api.get<PaginatedResponse<Bonus>>(`/mobcash/bonus?page=${page}`)
+    return data
+  },
+}
+
+export const advertisementApi = {
+  get: async () => {
+    const { data } = await api.get<Advertisement>("/mobcash/ann")
+    return data
+  },
+}
+
+export const settingsApi = {
+  get: async () => {
+    const { data } = await api.get<Settings>("/mobcash/setting")
+    return data
+  },
+}
+
+export const couponApi = {
+  getAll: async (page = 1) => {
+    const { data } = await api.get<PaginatedResponse<Coupon>>(`/mobcash/coupon?page=${page}`)
     return data
   },
 }
