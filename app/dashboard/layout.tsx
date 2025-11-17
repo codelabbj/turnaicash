@@ -22,8 +22,8 @@ import { settingsApi } from "@/lib/api-client"
 
 const baseNavigation = [
   { name: "Acceuil", href: "/dashboard", icon: Home },
-  { name: "Dépôt", href: "/dashboard/deposit", icon: ArrowDownToLine },
-  { name: "Retrait", href: "/dashboard/withdrawal", icon: ArrowUpFromLine },
+  // { name: "Dépôt", href: "/dashboard/deposit", icon: ArrowDownToLine },
+  // { name: "Retrait", href: "/dashboard/withdrawal", icon: ArrowUpFromLine },
   { name: "Coupon", href: "/dashboard/coupon", icon: Ticket },
   { name: "Mes numéros", href: "/dashboard/phones", icon: Phone },
   { name: "Notifications", href: "/notifications", icon: Bell },

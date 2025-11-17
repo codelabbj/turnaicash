@@ -6,9 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Loader2, Plus, Edit, Trash2 } from "lucide-react"
 import { userAppIdApi } from "@/lib/api-client"
-import type { UserAppId, Platform } from "@/lib/types"
+import type { UserAppId, Platform, SearchUserResponse } from "@/lib/types"
 import { toast } from "react-hot-toast"
 
 interface BetIdStepProps {
@@ -26,6 +36,16 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   const [editingBetId, setEditingBetId] = useState<UserAppId | null>(null)
   const [newBetId, setNewBetId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [betIdToDelete, setBetIdToDelete] = useState<UserAppId | null>(null)
+  
+  // Bet ID search states
+  const [isSearching, setIsSearching] = useState(false)
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false)
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [searchResult, setSearchResult] = useState<{ name: string; userId: number; currencyId: number } | null>(null)
+  const [pendingBetId, setPendingBetId] = useState<{ appId: string; betId: string } | null>(null)
+  const [isEditingMode, setIsEditingMode] = useState(false)
 
   useEffect(() => {
     if (selectedPlatform) {
@@ -50,20 +70,103 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   const handleAddBetId = async () => {
     if (!newBetId.trim() || !selectedPlatform) return
     
+    // Search for the user first
+    setIsSearching(true)
+    try {
+      const response = await userAppIdApi.searchUser(selectedPlatform.id, newBetId.trim())
+      
+      // Validate user exists
+      if (response.UserId === 0) {
+        setErrorMessage("Utilisateur non trouvé avec cet ID de pari.")
+        setIsErrorModalOpen(true)
+        setIsAddDialogOpen(false)
+        return
+      }
+
+      // Validate currency
+      if (response.CurrencyId !== 27) {
+        setErrorMessage("Cet utilisateur n'utilise pas la devise XOF. Seuls les utilisateurs avec la devise XOF peuvent être ajoutés.")
+        setIsErrorModalOpen(true)
+        setIsAddDialogOpen(false)
+        return
+      }
+
+      // User is valid - show confirmation modal with search results
+      setSearchResult({
+        name: response.Name,
+        userId: response.UserId,
+        currencyId: response.CurrencyId,
+      })
+      setPendingBetId({ appId: selectedPlatform.id, betId: newBetId.trim() })
+      setIsAddDialogOpen(false)
+      setIsEditingMode(false)
+      setIsConfirmationModalOpen(true)
+    } catch (error: any) {
+      console.error("Search error:", error)
+      // Check for field-specific errors (400 status)
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        let errorMsg = "Erreur lors de la recherche"
+        
+        if (errorData.user_app_id) {
+          errorMsg = Array.isArray(errorData.user_app_id) 
+            ? errorData.user_app_id[0] 
+            : errorData.user_app_id
+        } else if (errorData.app) {
+          errorMsg = Array.isArray(errorData.app) 
+            ? errorData.app[0] 
+            : errorData.app
+        } else if (errorData.detail || errorData.error || errorData.message) {
+          errorMsg = errorData.detail || errorData.error || errorData.message
+        }
+        
+        setErrorMessage(errorMsg)
+      } else {
+        setErrorMessage("Erreur lors de la recherche de l'utilisateur. Veuillez réessayer.")
+      }
+      setIsErrorModalOpen(true)
+      setIsAddDialogOpen(false)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleConfirmAddBetId = async () => {
+    if (!pendingBetId || !selectedPlatform) return
+
     setIsSubmitting(true)
     try {
-      const newBetIdData = await userAppIdApi.create(newBetId.trim(), selectedPlatform.id)
+      const newBetIdData = await userAppIdApi.create(pendingBetId.betId, pendingBetId.appId)
       setBetIds(prev => [...prev, newBetIdData])
       setNewBetId("")
-      setIsAddDialogOpen(false)
+      setIsConfirmationModalOpen(false)
+      setPendingBetId(null)
+      setSearchResult(null)
       toast.success("ID de pari ajouté avec succès")
       // Auto-select and advance
       onSelect(newBetIdData)
       setTimeout(() => {
         onNext()
       }, 300)
-    } catch (error) {
-      toast.error("Erreur lors de l'ajout de l'ID de pari")
+    } catch (error: any) {
+      console.error("Add bet ID error:", error)
+      let errorMsg = "Erreur lors de l'ajout de l'ID de pari"
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        if (errorData.user_app_id) {
+          errorMsg = Array.isArray(errorData.user_app_id) 
+            ? errorData.user_app_id[0] 
+            : errorData.user_app_id
+        } else if (errorData.detail || errorData.error || errorData.message) {
+          errorMsg = errorData.detail || errorData.error || errorData.message
+        }
+      }
+      
+      toast.error(errorMsg)
+      setIsConfirmationModalOpen(false)
+      setPendingBetId(null)
+      setSearchResult(null)
     } finally {
       setIsSubmitting(false)
     }
@@ -72,37 +175,149 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   const handleEditBetId = async () => {
     if (!newBetId.trim() || !editingBetId || !selectedPlatform) return
     
+    // If the bet ID hasn't changed, update directly without search
+    if (editingBetId.user_app_id === newBetId.trim()) {
+      setIsSubmitting(true)
+      try {
+        const updatedBetId = await userAppIdApi.update(
+          editingBetId.id,
+          newBetId.trim(),
+          selectedPlatform.id
+        )
+        setBetIds(prev => prev.map(betId => 
+          betId.id === editingBetId.id ? updatedBetId : betId
+        ))
+        setNewBetId("")
+        setEditingBetId(null)
+        setIsEditDialogOpen(false)
+        toast.success("ID de pari modifié avec succès")
+      } catch (error) {
+        toast.error("Erreur lors de la modification de l'ID de pari")
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+
+    // If bet ID changed, search first
+    setIsSearching(true)
+    try {
+      const response = await userAppIdApi.searchUser(selectedPlatform.id, newBetId.trim())
+      
+      // Validate user exists
+      if (response.UserId === 0) {
+        setErrorMessage("Utilisateur non trouvé avec cet ID de pari.")
+        setIsErrorModalOpen(true)
+        setIsEditDialogOpen(false)
+        return
+      }
+
+      // Validate currency
+      if (response.CurrencyId !== 27) {
+        setErrorMessage("Cet utilisateur n'utilise pas la devise XOF. Seuls les utilisateurs avec la devise XOF peuvent être ajoutés.")
+        setIsErrorModalOpen(true)
+        setIsEditDialogOpen(false)
+        return
+      }
+
+      // User is valid - show confirmation modal with search results
+      setSearchResult({
+        name: response.Name,
+        userId: response.UserId,
+        currencyId: response.CurrencyId,
+      })
+      setPendingBetId({ appId: selectedPlatform.id, betId: newBetId.trim() })
+      setIsEditDialogOpen(false)
+      setIsEditingMode(true)
+      setIsConfirmationModalOpen(true)
+    } catch (error: any) {
+      console.error("Search error:", error)
+      // Check for field-specific errors (400 status)
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        let errorMsg = "Erreur lors de la recherche"
+        
+        if (errorData.user_app_id) {
+          errorMsg = Array.isArray(errorData.user_app_id) 
+            ? errorData.user_app_id[0] 
+            : errorData.user_app_id
+        } else if (errorData.app) {
+          errorMsg = Array.isArray(errorData.app) 
+            ? errorData.app[0] 
+            : errorData.app
+        } else if (errorData.detail || errorData.error || errorData.message) {
+          errorMsg = errorData.detail || errorData.error || errorData.message
+        }
+        
+        setErrorMessage(errorMsg)
+      } else {
+        setErrorMessage("Erreur lors de la recherche de l'utilisateur. Veuillez réessayer.")
+      }
+      setIsErrorModalOpen(true)
+      setIsEditDialogOpen(false)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleConfirmEditBetId = async () => {
+    if (!pendingBetId || !editingBetId || !selectedPlatform) return
+
     setIsSubmitting(true)
     try {
       const updatedBetId = await userAppIdApi.update(
         editingBetId.id,
-        newBetId.trim(),
-        selectedPlatform.id
+        pendingBetId.betId,
+        pendingBetId.appId
       )
       setBetIds(prev => prev.map(betId => 
         betId.id === editingBetId.id ? updatedBetId : betId
       ))
       setNewBetId("")
       setEditingBetId(null)
-      setIsEditDialogOpen(false)
+      setIsConfirmationModalOpen(false)
+      setPendingBetId(null)
+      setSearchResult(null)
       toast.success("ID de pari modifié avec succès")
-    } catch (error) {
-      toast.error("Erreur lors de la modification de l'ID de pari")
+    } catch (error: any) {
+      console.error("Update bet ID error:", error)
+      let errorMsg = "Erreur lors de la modification de l'ID de pari"
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        if (errorData.user_app_id) {
+          errorMsg = Array.isArray(errorData.user_app_id) 
+            ? errorData.user_app_id[0] 
+            : errorData.user_app_id
+        } else if (errorData.detail || errorData.error || errorData.message) {
+          errorMsg = errorData.detail || errorData.error || errorData.message
+        }
+      }
+      
+      toast.error(errorMsg)
+      setIsConfirmationModalOpen(false)
+      setPendingBetId(null)
+      setSearchResult(null)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleDeleteBetId = async (betId: UserAppId) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cet ID de pari ?")) return
+  const handleDeleteBetId = (betId: UserAppId) => {
+    setBetIdToDelete(betId)
+  }
+
+  const confirmDeleteBetId = async () => {
+    if (!betIdToDelete) return
     
     try {
-      await userAppIdApi.delete(betId.id)
-      setBetIds(prev => prev.filter(b => b.id !== betId.id))
-      if (selectedBetId?.id === betId.id) {
+      await userAppIdApi.delete(betIdToDelete.id)
+      setBetIds(prev => prev.filter(b => b.id !== betIdToDelete.id))
+      if (selectedBetId?.id === betIdToDelete.id) {
         onSelect(null as any)
       }
       toast.success("ID de pari supprimé avec succès")
+      setBetIdToDelete(null)
     } catch (error) {
       toast.error("Erreur lors de la suppression de l'ID de pari")
     }
@@ -157,9 +372,9 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm sm:text-base break-all">{betId.user_app_id}</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        {/* <p className="text-xs sm:text-sm text-muted-foreground">
                           Ajouté le {new Date(betId.created_at).toLocaleDateString("fr-FR")}
-                        </p>
+                        </p> */}
                       </div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <Button
@@ -236,11 +451,11 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleAddBetId} disabled={!newBetId.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
-              {isSubmitting ? (
+            <Button onClick={handleAddBetId} disabled={!newBetId.trim() || isSubmitting || isSearching} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
+              {isSubmitting || isSearching ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Ajout...
+                  {isSearching ? "Recherche..." : "Ajout..."}
                 </>
               ) : (
                 "Ajouter"
@@ -271,15 +486,112 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
               Annuler
             </Button>
-            <Button onClick={handleEditBetId} disabled={!newBetId.trim() || isSubmitting} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
-              {isSubmitting ? (
+            <Button onClick={handleEditBetId} disabled={!newBetId.trim() || isSubmitting || isSearching} className="w-full sm:w-auto h-11 sm:h-10 text-sm">
+              {isSubmitting || isSearching ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Modification...
+                  {isSearching ? "Recherche..." : "Modification..."}
                 </>
               ) : (
                 "Modifier"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!betIdToDelete} onOpenChange={() => setBetIdToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Cela supprimera définitivement cet ID de pari.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteBetId} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bet ID Search Confirmation Modal */}
+      <Dialog open={isConfirmationModalOpen} onOpenChange={setIsConfirmationModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer {isEditingMode ? "la modification" : "l'ajout"}</DialogTitle>
+            <DialogDescription className="space-y-2">
+              {searchResult && (
+                <>
+                  <p>Utilisateur trouvé:</p>
+                  <div className="bg-muted p-3 rounded-md space-y-1">
+                    <p><strong>Nom:</strong> {searchResult.name}</p>
+                    <p><strong>ID utilisateur:</strong> {searchResult.userId}</p>
+                    <p><strong>Devise:</strong> XOF (ID: {searchResult.currencyId})</p>
+                  </div>
+                  <p className="mt-2">Voulez-vous {isEditingMode ? "modifier" : "ajouter"} cet ID de pari à votre liste?</p>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConfirmationModalOpen(false)
+                setPendingBetId(null)
+                setSearchResult(null)
+                setIsEditingMode(false)
+                if (editingBetId) {
+                  setEditingBetId(null)
+                  setNewBetId("")
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={isEditingMode ? handleConfirmEditBetId : handleConfirmAddBetId} 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isEditingMode ? "Modification..." : "Ajout..."}
+                </>
+              ) : (
+                "Confirmer"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bet ID Search Error Modal */}
+      <Dialog open={isErrorModalOpen} onOpenChange={setIsErrorModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Erreur</DialogTitle>
+            <DialogDescription className="text-destructive">
+              {errorMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsErrorModalOpen(false)
+                setErrorMessage("")
+              }}
+            >
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>

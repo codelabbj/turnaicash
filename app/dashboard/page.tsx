@@ -48,13 +48,19 @@ export default function DashboardPage() {
   const fetchAdvertisement = async () => {
     try {
       setIsLoadingAd(true)
-      const data = await advertisementApi.get()
-      // Check if response has content (not empty)
-      // An empty response could be {}, null, undefined, or an object without image/image_url
-      if (data && (data.image || data.image_url)) {
-        setAdvertisement(data)
+      const response = await advertisementApi.get()
+      // The API returns a paginated response with results array
+      if (response && response.results && Array.isArray(response.results)) {
+        // Find the first advertisement where enable is true
+        const enabledAd = response.results.find((ad: Advertisement) => ad.enable === true)
+        if (enabledAd && (enabledAd.image || enabledAd.image_url)) {
+          setAdvertisement(enabledAd)
+        } else {
+          // No enabled advertisement found - show placeholder
+          setAdvertisement(null)
+        }
       } else {
-        // Empty response - show placeholder
+        // Empty or invalid response - show placeholder
         setAdvertisement(null)
       }
     } catch (error) {
@@ -211,7 +217,7 @@ export default function DashboardPage() {
 
       {/* Advertisement Section */}
       <div className="w-full">
-        <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors">
+        <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors p-0 py-0">
           <CardContent className="p-0">
             <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30">
               {isLoadingAd ? (
@@ -230,6 +236,7 @@ export default function DashboardPage() {
                       alt={advertisement?.title || "Publicité"}
                       fill
                       className={link ? "object-cover cursor-pointer" : "object-cover"}
+                      style={{ objectFit: 'cover' }}
                       onError={() => setAdImageError(true)}
                     />
                   )
@@ -239,7 +246,7 @@ export default function DashboardPage() {
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full h-full"
+                      className="block w-full h-full absolute inset-0"
                     >
                       {imageElement}
                     </a>

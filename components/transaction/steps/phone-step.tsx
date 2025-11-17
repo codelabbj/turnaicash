@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Loader2, Plus, Edit, Trash2 } from "lucide-react"
 import { phoneApi } from "@/lib/api-client"
 import type { UserPhone, Network } from "@/lib/types"
@@ -27,6 +37,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
   const [editingPhone, setEditingPhone] = useState<UserPhone | null>(null)
   const [newPhone, setNewPhone] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [phoneToDelete, setPhoneToDelete] = useState<UserPhone | null>(null)
 
   useEffect(() => {
     if (selectedNetwork) {
@@ -39,10 +50,9 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
     
     setIsLoading(true)
     try {
-      const data = await phoneApi.getAll()
-      // Filter phones by selected network
-      const networkPhones = data.filter(phone => phone.network === selectedNetwork.id)
-      setPhones(networkPhones)
+      // Use network parameter to get phones filtered by network UID
+      const data = await phoneApi.getAll(selectedNetwork.id)
+      setPhones(data)
     } catch (error) {
       toast.error("Erreur lors du chargement des numéros de téléphone")
     } finally {
@@ -96,16 +106,21 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
     }
   }
 
-  const handleDeletePhone = async (phone: UserPhone) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce numéro de téléphone ?")) return
+  const handleDeletePhone = (phone: UserPhone) => {
+    setPhoneToDelete(phone)
+  }
+
+  const confirmDeletePhone = async () => {
+    if (!phoneToDelete) return
     
     try {
-      await phoneApi.delete(phone.id)
-      setPhones(prev => prev.filter(p => p.id !== phone.id))
-      if (selectedPhone?.id === phone.id) {
+      await phoneApi.delete(phoneToDelete.id)
+      setPhones(prev => prev.filter(p => p.id !== phoneToDelete.id))
+      if (selectedPhone?.id === phoneToDelete.id) {
         onSelect(null as any)
       }
       toast.success("Numéro de téléphone supprimé avec succès")
+      setPhoneToDelete(null)
     } catch (error) {
       toast.error("Erreur lors de la suppression du numéro de téléphone")
     }
@@ -160,9 +175,9 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm sm:text-base break-all">{formatPhoneNumberForDisplay(phone.phone)}</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        {/* <p className="text-xs sm:text-sm text-muted-foreground">
                           Ajouté le {new Date(phone.created_at).toLocaleDateString("fr-FR")}
-                        </p>
+                        </p> */}
                       </div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <Button
@@ -287,6 +302,27 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!phoneToDelete} onOpenChange={() => setPhoneToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Cela supprimera définitivement ce numéro de téléphone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeletePhone} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

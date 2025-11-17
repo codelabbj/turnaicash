@@ -158,13 +158,15 @@ export interface SearchUserResponse {
 }
 
 export interface Advertisement {
-  id?: number
+  id?: string | number
   image?: string
   image_url?: string
   url?: string
   link?: string
   title?: string
   description?: string
+  enable?: boolean
+  created_at?: string
   [key: string]: any // Allow for flexible response structure
 }
 

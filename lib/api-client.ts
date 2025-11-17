@@ -97,8 +97,11 @@ export const networkApi = {
 }
 
 export const phoneApi = {
-  getAll: async () => {
-    const { data } = await api.get<UserPhone[]>("/mobcash/user-phone/")
+  getAll: async (network?: number) => {
+    const url = network 
+      ? `/mobcash/user-phone/?network=${network}`
+      : "/mobcash/user-phone/"
+    const { data } = await api.get<UserPhone[]>(url)
     return data
   },
 
@@ -238,7 +241,7 @@ export const bonusApi = {
 
 export const advertisementApi = {
   get: async () => {
-    const { data } = await api.get<Advertisement>("/mobcash/ann")
+    const { data } = await api.get<PaginatedResponse<Advertisement>>("/mobcash/ann")
     return data
   },
 }
