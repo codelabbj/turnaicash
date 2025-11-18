@@ -37,6 +37,54 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
+const COUNTRY_OPTIONS = [
+  { label: "Burkina Faso", value: "bf", prefix: "+226" },
+  { label: "Sénégal", value: "sn", prefix: "+221" },
+  { label: "Bénin", value: "bj", prefix: "+229" },
+  { label: "Côte d'Ivoire", value: "ci", prefix: "+225" },
+]
+
+const DEFAULT_COUNTRY_VALUE = "ci"
+
+const buildInternationalPhone = (input: string, countryValue: string) => {
+  const country = COUNTRY_OPTIONS.find(option => option.value === countryValue)
+  if (!country) return input.trim()
+
+  let sanitized = input.trim().replace(/\s+/g, "")
+  if (!sanitized) return `${country.prefix}`
+
+  if (sanitized.startsWith(country.prefix)) {
+    sanitized = sanitized.slice(country.prefix.length)
+  } else {
+    const numericPrefix = country.prefix.replace("+", "")
+    if (sanitized.startsWith(numericPrefix)) {
+      sanitized = sanitized.slice(numericPrefix.length)
+    }
+  }
+
+  if (sanitized.startsWith("+")) {
+    sanitized = sanitized.slice(1)
+  }
+
+  return `${country.prefix}${sanitized}`
+}
+
+const parsePhoneByCountry = (phone: string) => {
+  const sanitized = phone.replace(/\s+/g, "")
+  for (const country of COUNTRY_OPTIONS) {
+    if (sanitized.startsWith(country.prefix)) {
+      return {
+        countryValue: country.value,
+        localNumber: sanitized.slice(country.prefix.length),
+      }
+    }
+  }
+  return {
+    countryValue: DEFAULT_COUNTRY_VALUE,
+    localNumber: sanitized,
+  }
+}
+
 const phoneSchema = z.object({
   phone: z.string().min(8, "Numéro de téléphone invalide"),
   network: z.number().min(1, "Réseau requis"),
@@ -62,6 +110,8 @@ export default function PhonesPage() {
   const [editingPhone, setEditingPhone] = useState<UserPhone | null>(null)
   const [editingAppId, setEditingAppId] = useState<UserAppId | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ type: "phone" | "appId"; id: number } | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<string>(DEFAULT_COUNTRY_VALUE)
+  const [editingCountry, setEditingCountry] = useState<string>(DEFAULT_COUNTRY_VALUE)
   
   // Bet ID search states
   const [isSearching, setIsSearching] = useState(false)
@@ -125,16 +175,21 @@ export default function PhonesPage() {
   const handlePhoneSubmit = async (data: PhoneFormData) => {
     setIsSubmitting(true)
     try {
+      const countryValue = editingPhone ? editingCountry : selectedCountry
+      const phoneWithPrefix = buildInternationalPhone(data.phone, countryValue)
+      
       if (editingPhone) {
-        await phoneApi.update(editingPhone.id, data.phone, data.network)
+        await phoneApi.update(editingPhone.id, phoneWithPrefix, data.network)
         toast.success("Numéro modifié avec succès!")
       } else {
-        await phoneApi.create(data.phone, data.network)
+        await phoneApi.create(phoneWithPrefix, data.network)
         toast.success("Numéro ajouté avec succès!")
       }
       setIsPhoneDialogOpen(false)
       phoneForm.reset()
       setEditingPhone(null)
+      setSelectedCountry(DEFAULT_COUNTRY_VALUE)
+      setEditingCountry(DEFAULT_COUNTRY_VALUE)
       loadData()
     } catch (error) {
       console.error("Phone operation error:", error)
@@ -241,9 +296,11 @@ export default function PhonesPage() {
   }
 
   const openEditPhoneDialog = (phone: UserPhone) => {
+    const { countryValue, localNumber } = parsePhoneByCountry(phone.phone)
     setEditingPhone(phone)
+    setEditingCountry(countryValue)
     phoneForm.reset({
-      phone: phone.phone,
+      phone: localNumber,
       network: phone.network,
     })
     setIsPhoneDialogOpen(true)
@@ -261,6 +318,8 @@ export default function PhonesPage() {
   const closePhoneDialog = () => {
     setIsPhoneDialogOpen(false)
     setEditingPhone(null)
+    setSelectedCountry(DEFAULT_COUNTRY_VALUE)
+    setEditingCountry(DEFAULT_COUNTRY_VALUE)
     phoneForm.reset()
   }
 
@@ -347,14 +406,52 @@ export default function PhonesPage() {
                   <form onSubmit={phoneForm.handleSubmit(handlePhoneSubmit)} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="text-sm sm:text-base">Numéro de téléphone</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+225 01 02 03 04 05"
-                        {...phoneForm.register("phone")}
-                        disabled={isSubmitting}
-                        className="h-11 sm:h-10 text-base sm:text-sm"
-                      />
+                      <div className="flex gap-2">
+                        <Select
+                          value={editingPhone ? editingCountry : selectedCountry}
+                          onValueChange={(value) => {
+                            if (editingPhone) {
+                              setEditingCountry(value)
+                            } else {
+                              setSelectedCountry(value)
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger className="w-[170px] h-11 sm:h-10">
+                            <SelectValue placeholder="Choisir un pays" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRY_OPTIONS.map(country => (
+                              <SelectItem key={country.value} value={country.value}>
+                                {country.label} ({country.prefix})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="Ex: 07 12 34 56 78"
+                          {...phoneForm.register("phone")}
+                          onChange={(e) => {
+                            phoneForm.setValue("phone", e.target.value)
+                            // Auto-detect country from prefix if user types a full number with prefix
+                            const detected = parsePhoneByCountry(e.target.value)
+                            if (editingPhone) {
+                              if (detected.countryValue !== editingCountry) {
+                                setEditingCountry(detected.countryValue)
+                              }
+                            } else {
+                              if (detected.countryValue !== selectedCountry) {
+                                setSelectedCountry(detected.countryValue)
+                              }
+                            }
+                          }}
+                          disabled={isSubmitting}
+                          className="h-11 sm:h-10 text-base sm:text-sm flex-1"
+                        />
+                      </div>
                       {phoneForm.formState.errors.phone && (
                         <p className="text-xs sm:text-sm text-destructive">{phoneForm.formState.errors.phone.message}</p>
                       )}

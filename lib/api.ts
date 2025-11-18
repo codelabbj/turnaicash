@@ -39,6 +39,17 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
+    
+    // Handle network errors (no response from server)
+    if (!error.response) {
+      const networkErrorMsg = "Erreur de connexion. Vérifiez votre connexion internet et réessayez."
+      // Only show toast for network errors if it's not a silent request
+      if (!original?._silent) {
+        toast.error(networkErrorMsg)
+      }
+      return Promise.reject(error)
+    }
+    
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
       try {
@@ -71,7 +82,10 @@ api.interceptors.response.use(
       (typeof error.response?.data === "string" ? error.response.data : fallback)
 
     const lang = detectLang(backendMsg)
-    toast.error(backendMsg, { style: { direction: "ltr" } })
+    // Only show toast if not a silent request
+    if (!original?._silent) {
+      toast.error(backendMsg, { style: { direction: "ltr" } })
+    }
     return Promise.reject(error)
   },
 )

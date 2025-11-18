@@ -19,15 +19,22 @@ import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { formatPhoneNumberForDisplay } from "@/lib/utils"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel"
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
-  const [advertisement, setAdvertisement] = useState<Advertisement | null>(null)
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>([])
   const [isLoadingAd, setIsLoadingAd] = useState(true)
-  const [adImageError, setAdImageError] = useState(false)
+  const [adImageErrors, setAdImageErrors] = useState<Set<string>>(new Set())
   const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false)
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>()
 
   const fetchRecentTransactions = async () => {
     try {
@@ -51,22 +58,19 @@ export default function DashboardPage() {
       const response = await advertisementApi.get()
       // The API returns a paginated response with results array
       if (response && response.results && Array.isArray(response.results)) {
-        // Find the first advertisement where enable is true
-        const enabledAd = response.results.find((ad: Advertisement) => ad.enable === true)
-        if (enabledAd && (enabledAd.image || enabledAd.image_url)) {
-          setAdvertisement(enabledAd)
-        } else {
-          // No enabled advertisement found - show placeholder
-          setAdvertisement(null)
-        }
+        // Get all advertisements where enable is true and have an image
+        const enabledAds = response.results.filter(
+          (ad: Advertisement) => ad.enable === true && (ad.image || ad.image_url)
+        )
+        setAdvertisements(enabledAds)
       } else {
         // Empty or invalid response - show placeholder
-        setAdvertisement(null)
+        setAdvertisements([])
       }
     } catch (error) {
       console.error("Error fetching advertisement:", error)
       // On error, show placeholder
-      setAdvertisement(null)
+      setAdvertisements([])
     } finally {
       setIsLoadingAd(false)
     }
@@ -90,15 +94,28 @@ export default function DashboardPage() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [user])
 
-  const getAdvertisementImageUrl = () => {
-    if (!advertisement) return null
-    return advertisement.image_url || advertisement.image || null
+  const getAdvertisementImageUrl = (ad: Advertisement) => {
+    return ad.image_url || ad.image || null
   }
 
-  const getAdvertisementLink = () => {
-    if (!advertisement) return null
-    return advertisement.url || advertisement.link || null
+  const getAdvertisementLink = (ad: Advertisement) => {
+    return ad.url || ad.link || null
   }
+
+  const handleAdImageError = (adId: string) => {
+    setAdImageErrors(prev => new Set(prev).add(adId))
+  }
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (!carouselApi || advertisements.length <= 1) return
+
+    const interval = setInterval(() => {
+      carouselApi.scrollNext()
+    }, 5000) // Change slide every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [carouselApi, advertisements.length])
 
   const getStatusBadge = (status: Transaction["status"]) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
@@ -219,50 +236,62 @@ export default function DashboardPage() {
       <div className="w-full">
         <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors p-0 py-0">
           <CardContent className="p-0">
-            <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] bg-muted/30">
-              {isLoadingAd ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            {isLoadingAd ? (
+              <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : advertisements.length > 0 ? (
+              <Carousel
+                setApi={setCarouselApi}
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-0">
+                  {advertisements.map((ad) => {
+                    const imageUrl = getAdvertisementImageUrl(ad)
+                    const link = getAdvertisementLink(ad)
+                    const adId = ad.id?.toString() || ""
+                    const hasError = adImageErrors.has(adId)
+                    
+                    if (!imageUrl || hasError) return null
+                    
+                    return (
+                      <CarouselItem key={adId} className="pl-0">
+                        <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30">
+                          <Image
+                            src={imageUrl}
+                            alt={ad.title || "Publicité"}
+                            fill
+                            className={link ? "object-cover cursor-pointer" : "object-cover"}
+                            style={{ objectFit: 'cover' }}
+                            onError={() => handleAdImageError(adId)}
+                          />
+                          {link && (
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="absolute inset-0 z-10"
+                              aria-label={ad.title || "Voir la publicité"}
+                            />
+                          )}
+                        </div>
+                      </CarouselItem>
+                    )
+                  })}
+                </CarouselContent>
+              </Carousel>
+            ) : (
+              <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30 flex items-center justify-center">
+                <div className="text-center p-4">
+                  <p className="text-sm sm:text-base text-muted-foreground font-medium">Espace publicitaire</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Publicité</p>
                 </div>
-              ) : getAdvertisementImageUrl() && !adImageError ? (
-                (() => {
-                  const imageUrl = getAdvertisementImageUrl()
-                  const link = getAdvertisementLink()
-                  if (!imageUrl) return null
-                  
-                  const imageElement = (
-                    <Image
-                      src={imageUrl}
-                      alt={advertisement?.title || "Publicité"}
-                      fill
-                      className={link ? "object-cover cursor-pointer" : "object-cover"}
-                      style={{ objectFit: 'cover' }}
-                      onError={() => setAdImageError(true)}
-                    />
-                  )
-                  
-                  return link ? (
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full h-full absolute inset-0"
-                    >
-                      {imageElement}
-                    </a>
-                  ) : (
-                    imageElement
-                  )
-                })()
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm">
-                  <div className="text-center p-4">
-                    <p className="text-sm sm:text-base text-muted-foreground font-medium">Espace publicitaire</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">Publicité</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
