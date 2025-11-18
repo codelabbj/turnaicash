@@ -142,6 +142,24 @@ export interface Transaction {
   telegram_user: number | null
   app: string
   network: number
+  app_details?: {
+    id: string
+    name: string
+    image: string
+    enable: boolean
+    deposit_tuto_link: string | null
+    withdrawal_tuto_link: string | null
+    why_withdrawal_fail: string | null
+    order: number | null
+    city: string | null
+    street: string | null
+    minimun_deposit: number
+    max_deposit: number
+    minimun_with: number
+    max_win: number
+    active_for_deposit: boolean
+    active_for_with: boolean
+  }
 }
 
 export interface PaginatedResponse<T> {

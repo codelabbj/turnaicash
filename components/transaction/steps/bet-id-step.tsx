@@ -130,7 +130,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
 
   const handleConfirmAddBetId = async () => {
     if (!pendingBetId || !selectedPlatform) return
-
+    
     setIsSubmitting(true)
     try {
       const newBetIdData = await userAppIdApi.create(pendingBetId.betId, pendingBetId.appId)
@@ -174,25 +174,25 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
     
     // If the bet ID hasn't changed, update directly without search
     if (editingBetId.user_app_id === newBetId.trim()) {
-      setIsSubmitting(true)
-      try {
-        const updatedBetId = await userAppIdApi.update(
-          editingBetId.id,
-          newBetId.trim(),
+    setIsSubmitting(true)
+    try {
+      const updatedBetId = await userAppIdApi.update(
+        editingBetId.id,
+        newBetId.trim(),
           selectedPlatform.id || ""
-        )
-        setBetIds(prev => prev.map(betId => 
-          betId.id === editingBetId.id ? updatedBetId : betId
-        ))
-        setNewBetId("")
-        setEditingBetId(null)
-        setIsEditDialogOpen(false)
-        toast.success("ID de pari modifié avec succès")
-      } catch (error) {
-        toast.error("Erreur lors de la modification de l'ID de pari")
-      } finally {
-        setIsSubmitting(false)
-      }
+      )
+      setBetIds(prev => prev.map(betId => 
+        betId.id === editingBetId.id ? updatedBetId : betId
+      ))
+      setNewBetId("")
+      setEditingBetId(null)
+      setIsEditDialogOpen(false)
+      toast.success("ID de pari modifié avec succès")
+    } catch (error) {
+      toast.error("Erreur lors de la modification de l'ID de pari")
+    } finally {
+      setIsSubmitting(false)
+    }
       return
     }
 

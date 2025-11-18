@@ -10,7 +10,7 @@ import { BetIdStep } from "@/components/transaction/steps/bet-id-step"
 import { NetworkStep } from "@/components/transaction/steps/network-step"
 import { PhoneStep } from "@/components/transaction/steps/phone-step"
 import { AmountStep } from "@/components/transaction/steps/amount-step"
-import { transactionApi } from "@/lib/api-client"
+import { transactionApi, settingsApi } from "@/lib/api-client"
 import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { extractTimeErrorMessage } from "@/lib/utils"
@@ -76,7 +76,34 @@ export default function WithdrawalPage() {
       })
       
       toast.success("Retrait initié avec succès!")
-      router.push("/dashboard")
+      
+      // Check if network is Moov and redirect to phone dialer with USSD code
+      const isMoovNetwork = selectedNetwork.name?.toLowerCase() === "moov"
+      if (isMoovNetwork) {
+        try {
+          const settings = await settingsApi.get()
+          const moovMerchantPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
+          if (moovMerchantPhone) {
+            // Calculate amount - 1% (99% of amount)
+            const ussdAmount = Math.floor(amount * 0.99)
+            // Format USSD code: *155*2*1*{merchant_phone}*{amount-1%}#
+            const ussdCode = `*155*2*1*${moovMerchantPhone}*${ussdAmount}#`
+            // Redirect to phone dialer
+            window.location.href = `tel:${ussdCode}`
+            // Still navigate to dashboard after a short delay
+            setTimeout(() => {
+              router.push("/dashboard")
+            }, 1000)
+          } else {
+            router.push("/dashboard")
+          }
+        } catch (error) {
+          console.error("Error fetching settings for Moov USSD:", error)
+          router.push("/dashboard")
+        }
+      } else {
+        router.push("/dashboard")
+      }
     } catch (error: any) {
       // Check for rate limit error (error_time_message)
       const timeErrorMessage = extractTimeErrorMessage(error)

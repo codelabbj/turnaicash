@@ -360,7 +360,7 @@ export default function DashboardPage() {
                           {getStatusBadge(transaction.status)}
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                          {transaction.app} • {formatPhoneNumberForDisplay(transaction.phone_number)}
+                          {transaction.app_details?.name || transaction.app} • {formatPhoneNumberForDisplay(transaction.phone_number)}
                         </p>
                       </div>
                     </div>
