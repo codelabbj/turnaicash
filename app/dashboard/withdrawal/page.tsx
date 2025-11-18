@@ -99,6 +99,7 @@ export default function WithdrawalPage() {
             setTimeout(() => {
               document.body.removeChild(link)
             }, 100)
+            
             // Navigate to dashboard after a delay to allow dialer to open
             setTimeout(() => {
               router.push("/dashboard")
