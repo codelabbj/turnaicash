@@ -154,17 +154,13 @@ export default function PhonesPage() {
       setNetworks(networksData)
       setPlatforms(platformsData)
 
-      // Load all app IDs for all platforms
-      const allAppIds: UserAppId[] = []
-      for (const platform of platformsData) {
-        try {
-          const appIds = await userAppIdApi.getByPlatform(platform.id.toString())
-          allAppIds.push(...appIds)
-        } catch (error) {
-          console.error(`Failed to load app IDs for platform ${platform.id}:`, error)
-        }
+      // Load all app IDs
+      try {
+        const appIds = await userAppIdApi.getAll()
+        setUserAppIds(appIds)
+      } catch (error) {
+        console.error("Failed to load app IDs:", error)
       }
-      setUserAppIds(allAppIds)
     } catch (error) {
       console.error("Failed to load data:", error)
     } finally {
@@ -310,7 +306,7 @@ export default function PhonesPage() {
     setEditingAppId(appId)
     appIdForm.reset({
       user_app_id: appId.user_app_id,
-      app: appId.app.toString(),
+      app: appId.app?.toString() || "",
     })
     setIsAppIdDialogOpen(true)
   }
@@ -461,7 +457,7 @@ export default function PhonesPage() {
                       <Label htmlFor="network" className="text-sm sm:text-base">Réseau mobile</Label>
                       <Select
                         onValueChange={(value) => phoneForm.setValue("network", Number.parseInt(value))}
-                        defaultValue={editingPhone?.network.toString()}
+                        defaultValue={editingPhone?.network?.toString()}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm">
@@ -469,7 +465,7 @@ export default function PhonesPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {networks.map((network) => (
-                            <SelectItem key={network.id} value={network.id.toString()}>
+                            <SelectItem key={network.id} value={network.id?.toString() || ""}>
                               {network.name}
                             </SelectItem>
                           ))}
@@ -620,7 +616,7 @@ export default function PhonesPage() {
                       <Label htmlFor="app" className="text-sm sm:text-base">Plateforme de pari</Label>
                       <Select
                         onValueChange={(value) => appIdForm.setValue("app", value)}
-                        defaultValue={editingAppId?.app.toString()}
+                        defaultValue={editingAppId?.app?.toString()}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm">
@@ -628,7 +624,7 @@ export default function PhonesPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {platforms.map((platform) => (
-                            <SelectItem key={platform.id} value={platform.id.toString()}>
+                            <SelectItem key={platform.id} value={platform.id?.toString() || ""}>
                               {platform.name}
                             </SelectItem>
                           ))}
@@ -702,7 +698,7 @@ export default function PhonesPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{appId.user_app_id}</p>
                               <Badge variant="outline" className="mt-1 text-xs">
-                                {platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
+                                {appId.app_details?.name || platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
                               </Badge>
                             </div>
                             <div className="flex gap-2 ml-2">
@@ -739,7 +735,7 @@ export default function PhonesPage() {
                             <TableCell className="font-medium">{appId.user_app_id}</TableCell>
                             <TableCell>
                               <Badge variant="outline">
-                                {platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
+                                {appId.app_details?.name || platforms.find((p) => p.id === appId.app)?.name || "Inconnu"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -780,7 +776,10 @@ export default function PhonesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-white hover:bg-destructive/90 hover:text-white focus:ring-destructive"
+            >
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -792,18 +791,20 @@ export default function PhonesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmer l'ajout</DialogTitle>
-            <DialogDescription className="space-y-2">
-              {searchResult && (
-                <>
-                  <p>Utilisateur trouvé:</p>
-                  <div className="bg-muted p-3 rounded-md space-y-1">
-                    <p><strong>Nom:</strong> {searchResult.name}</p>
-                    <p><strong>ID utilisateur:</strong> {searchResult.userId}</p>
-                    <p><strong>Devise:</strong> XOF (ID: {searchResult.currencyId})</p>
-                  </div>
-                  <p className="mt-2">Voulez-vous ajouter cet ID de pari à votre liste?</p>
-                </>
-              )}
+            <DialogDescription asChild>
+              <div className="text-muted-foreground text-sm space-y-2">
+                {searchResult && (
+                  <>
+                    <p>Utilisateur trouvé:</p>
+                    <div className="bg-muted p-3 rounded-md space-y-1">
+                      <p><strong>Nom:</strong> {searchResult.name}</p>
+                      <p><strong>ID utilisateur:</strong> {searchResult.userId}</p>
+                      <p><strong>Devise:</strong> XOF (ID: {searchResult.currencyId})</p>
+                    </div>
+                    <p className="mt-2">Voulez-vous ajouter cet ID de pari à votre liste?</p>
+                  </>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

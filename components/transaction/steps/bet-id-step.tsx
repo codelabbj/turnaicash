@@ -54,7 +54,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   }, [selectedPlatform])
 
   const fetchBetIds = async () => {
-    if (!selectedPlatform) return
+    if (!selectedPlatform || !selectedPlatform.id) return
     
     setIsLoading(true)
     try {
@@ -68,7 +68,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   }
 
   const handleAddBetId = async () => {
-    if (!newBetId.trim() || !selectedPlatform) return
+    if (!newBetId.trim() || !selectedPlatform || !selectedPlatform.id) return
     
     // Search for the user first
     setIsSearching(true)
@@ -95,7 +95,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         userId: response.UserId,
         currencyId: response.CurrencyId,
       })
-      setPendingBetId({ appId: selectedPlatform.id, betId: newBetId.trim() })
+      setPendingBetId({ appId: selectedPlatform.id || "", betId: newBetId.trim() })
       setIsAddDialogOpen(false)
       setIsEditingMode(false)
       setIsConfirmationModalOpen(true)
@@ -170,7 +170,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
   }
 
   const handleEditBetId = async () => {
-    if (!newBetId.trim() || !editingBetId || !selectedPlatform) return
+    if (!newBetId.trim() || !editingBetId || !selectedPlatform || !selectedPlatform.id) return
     
     // If the bet ID hasn't changed, update directly without search
     if (editingBetId.user_app_id === newBetId.trim()) {
@@ -179,7 +179,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         const updatedBetId = await userAppIdApi.update(
           editingBetId.id,
           newBetId.trim(),
-          selectedPlatform.id
+          selectedPlatform.id || ""
         )
         setBetIds(prev => prev.map(betId => 
           betId.id === editingBetId.id ? updatedBetId : betId
@@ -221,7 +221,7 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         userId: response.UserId,
         currencyId: response.CurrencyId,
       })
-      setPendingBetId({ appId: selectedPlatform.id, betId: newBetId.trim() })
+      setPendingBetId({ appId: selectedPlatform.id || "", betId: newBetId.trim() })
       setIsEditDialogOpen(false)
       setIsEditingMode(true)
       setIsConfirmationModalOpen(true)

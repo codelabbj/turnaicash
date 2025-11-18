@@ -134,6 +134,11 @@ export const platformApi = {
 }
 
 export const userAppIdApi = {
+  getAll: async () => {
+    const { data } = await api.get<UserAppId[]>("/mobcash/user-app-id")
+    return data
+  },
+
   getByPlatform: async (bet_app: string) => {
     const { data } = await api.get<UserAppId[]>(`/mobcash/user-app-id?app_name=${bet_app}`)
     return data
