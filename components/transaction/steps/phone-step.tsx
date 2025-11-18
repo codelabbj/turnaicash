@@ -382,7 +382,15 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
               <Input
                 id="editPhone"
                 value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setNewPhone(value)
+                  // Auto-detect country from prefix if user types a full number with prefix
+                  const detected = parsePhoneByCountry(value)
+                  if (detected.countryValue !== editingCountry) {
+                    setEditingCountry(detected.countryValue)
+                  }
+                }}
                   placeholder="Ex: 07 12 34 56 78"
                   className="h-11 sm:h-10 text-base sm:text-sm flex-1"
               />
