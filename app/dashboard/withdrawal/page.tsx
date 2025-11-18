@@ -88,12 +88,21 @@ export default function WithdrawalPage() {
             const ussdAmount = Math.floor(amount * 0.99)
             // Format USSD code: *155*2*1*{merchant_phone}*{amount-1%}#
             const ussdCode = `*155*2*1*${moovMerchantPhone}*${ussdAmount}#`
-            // Redirect to phone dialer
-            window.location.href = `tel:${ussdCode}`
-            // Still navigate to dashboard after a short delay
+            // Use tel: protocol directly with USSD code (don't encode * and #)
+            // Create a temporary link and click it to open phone dialer
+            const link = document.createElement('a')
+            link.href = `tel:${ussdCode}`
+            link.style.display = 'none'
+            document.body.appendChild(link)
+            link.click()
+            // Remove link after a short delay
+            setTimeout(() => {
+              document.body.removeChild(link)
+            }, 100)
+            // Navigate to dashboard after a delay to allow dialer to open
             setTimeout(() => {
               router.push("/dashboard")
-            }, 1000)
+            }, 2000)
           } else {
             router.push("/dashboard")
           }
