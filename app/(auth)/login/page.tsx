@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/api-client"
 import { toast } from "react-hot-toast"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader2, Eye, EyeOff, Download } from "lucide-react"
 import { setupNotifications } from "@/lib/fcm-helper"
 
 const loginSchema = z.object({
@@ -22,6 +22,9 @@ const loginSchema = z.object({
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
+
+const APK_DOWNLOAD_URL = "/app-v1.0.5.apk"
+const APK_FILE_NAME = "TurainCash-v1.0.5.apk"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -83,75 +86,88 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="border-border/50 shadow-xl">
-      <CardHeader className="space-y-1 px-4 sm:px-6 pt-6 sm:pt-6">
-        <CardTitle className="text-xl sm:text-2xl font-bold text-center">Connexion</CardTitle>
-        <CardDescription className="text-center text-sm sm:text-base">Entrez vos identifiants pour accéder à votre compte</CardDescription>
-      </CardHeader>
-      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email_or_phone" className="text-sm sm:text-base">Email ou Téléphone</Label>
-            <Input
-              id="email_or_phone"
-              type="text"
-              placeholder="exemple@email.com ou +225..."
-              {...register("email_or_phone")}
-              disabled={isLoading}
-              className="h-11 sm:h-10 text-base sm:text-sm"
-            />
-            {errors.email_or_phone && <p className="text-xs sm:text-sm text-destructive">{errors.email_or_phone.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm sm:text-base">Mot de passe</Label>
-            <div className="relative">
+    <div className="space-y-4">
+      <Card className="border-border/50 shadow-xl">
+        <CardHeader className="space-y-1 px-4 sm:px-6 pt-6 sm:pt-6">
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center">Connexion</CardTitle>
+          <CardDescription className="text-center text-sm sm:text-base">Entrez vos identifiants pour accéder à votre compte</CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="email_or_phone" className="text-sm sm:text-base">Email ou Téléphone</Label>
               <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                {...register("password")}
+                id="email_or_phone"
+                type="text"
+                placeholder="exemple@email.com ou +225..."
+                {...register("email_or_phone")}
                 disabled={isLoading}
-                className="h-11 sm:h-10 text-base sm:text-sm pr-10"
+                className="h-11 sm:h-10 text-base sm:text-sm"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-11 sm:h-10 w-10 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
+              {errors.email_or_phone && <p className="text-xs sm:text-sm text-destructive">{errors.email_or_phone.message}</p>}
             </div>
-            {errors.password && <p className="text-xs sm:text-sm text-destructive">{errors.password.message}</p>}
-          </div>
 
-          <Button type="submit" className="w-full h-11 sm:h-10 text-base sm:text-sm font-medium" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connexion en cours...
-              </>
-            ) : (
-              "Se connecter"
-            )}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-2 px-4 sm:px-6 pb-6 sm:pb-6">
-        <div className="text-xs sm:text-sm text-muted-foreground text-center">
-          Pas encore de compte?{" "}
-          <Link href="/signup" className="text-primary hover:underline font-medium">
-            Créer un compte
-          </Link>
-        </div>
-      </CardFooter>
-    </Card>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm sm:text-base">Mot de passe</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...register("password")}
+                  disabled={isLoading}
+                  className="h-11 sm:h-10 text-base sm:text-sm pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-11 sm:h-10 w-10 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              {errors.password && <p className="text-xs sm:text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+
+            <Button type="submit" className="w-full h-11 sm:h-10 text-base sm:text-sm font-medium" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2 px-4 sm:px-6 pb-6 sm:pb-6">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center">
+            Pas encore de compte?{" "}
+            <Link href="/signup" className="text-primary hover:underline font-medium">
+              Créer un compte
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+
+      <Button
+        asChild
+        variant="outline"
+        className="w-full h-11 sm:h-10 text-base sm:text-sm font-medium flex items-center justify-center gap-2"
+      >
+        <a href={APK_DOWNLOAD_URL} download={APK_FILE_NAME} className="flex items-center gap-2">
+          <Download className="h-4 w-4" />
+          Télécharger l'application mobile
+        </a>
+      </Button>
+    </div>
   )
 }

@@ -79,7 +79,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
       if (response.UserId === 0) {
         setErrorMessage("Utilisateur non trouvé avec cet ID de pari.")
         setIsErrorModalOpen(true)
-        setIsAddDialogOpen(false)
         return
       }
 
@@ -87,7 +86,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
       if (response.CurrencyId !== 27) {
         setErrorMessage("Cet utilisateur n'utilise pas la devise XOF. Seuls les utilisateurs avec la devise XOF peuvent être ajoutés.")
         setIsErrorModalOpen(true)
-        setIsAddDialogOpen(false)
         return
       }
 
@@ -125,7 +123,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         setErrorMessage("Erreur lors de la recherche de l'utilisateur. Veuillez réessayer.")
       }
       setIsErrorModalOpen(true)
-      setIsAddDialogOpen(false)
     } finally {
       setIsSearching(false)
     }
@@ -208,7 +205,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
       if (response.UserId === 0) {
         setErrorMessage("Utilisateur non trouvé avec cet ID de pari.")
         setIsErrorModalOpen(true)
-        setIsEditDialogOpen(false)
         return
       }
 
@@ -216,7 +212,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
       if (response.CurrencyId !== 27) {
         setErrorMessage("Cet utilisateur n'utilise pas la devise XOF. Seuls les utilisateurs avec la devise XOF peuvent être ajoutés.")
         setIsErrorModalOpen(true)
-        setIsEditDialogOpen(false)
         return
       }
 
@@ -254,7 +249,6 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         setErrorMessage("Erreur lors de la recherche de l'utilisateur. Veuillez réessayer.")
       }
       setIsErrorModalOpen(true)
-      setIsEditDialogOpen(false)
     } finally {
       setIsSearching(false)
     }
@@ -526,19 +520,17 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmer {isEditingMode ? "la modification" : "l'ajout"}</DialogTitle>
-            <DialogDescription className="space-y-2">
-              {searchResult && (
-                <>
-                  <p>Utilisateur trouvé:</p>
-                  <div className="bg-muted p-3 rounded-md space-y-1">
-                    <p><strong>Nom:</strong> {searchResult.name}</p>
-                    <p><strong>ID utilisateur:</strong> {searchResult.userId}</p>
-                    <p><strong>Devise:</strong> XOF (ID: {searchResult.currencyId})</p>
-                  </div>
-                  <p className="mt-2">Voulez-vous {isEditingMode ? "modifier" : "ajouter"} cet ID de pari à votre liste?</p>
-                </>
-              )}
-            </DialogDescription>
+            {searchResult && (
+              <div className="text-muted-foreground text-sm space-y-2">
+                <div>Utilisateur trouvé:</div>
+                <div className="bg-muted p-3 rounded-md space-y-1">
+                  <div><strong>Nom:</strong> {searchResult.name}</div>
+                  <div><strong>ID utilisateur:</strong> {searchResult.userId}</div>
+                  <div><strong>Devise:</strong> XOF (ID: {searchResult.currencyId})</div>
+                </div>
+                <div className="mt-2">Voulez-vous {isEditingMode ? "modifier" : "ajouter"} cet ID de pari à votre liste?</div>
+              </div>
+            )}
           </DialogHeader>
           <DialogFooter>
             <Button

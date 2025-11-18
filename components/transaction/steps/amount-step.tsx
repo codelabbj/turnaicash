@@ -143,8 +143,25 @@ export function AmountStep({
 
       {/* Amount Input */}
       <Card className="overflow-hidden">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">Montant de la transaction</CardTitle>
+        <CardHeader className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl">Montant de la transaction</CardTitle>
+            {selectedPlatform && (() => {
+              const tutorialLink = type === "deposit" ? selectedPlatform.deposit_tuto_link : selectedPlatform.withdrawal_tuto_link
+              if (!tutorialLink) return null
+              return (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full sm:w-auto min-w-[180px] h-10 text-sm sm:text-base"
+                >
+                  <a href={tutorialLink} target="_blank" rel="noopener noreferrer">
+                    {type === "deposit" ? "Comment déposer ?" : "Comment retirer ?"}
+                  </a>
+                </Button>
+              )
+            })()}
+          </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-3 sm:space-y-4">

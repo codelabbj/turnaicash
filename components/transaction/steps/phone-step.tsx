@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,54 @@ import { phoneApi } from "@/lib/api-client"
 import type { UserPhone, Network } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { formatPhoneNumberForDisplay } from "@/lib/utils"
+
+const COUNTRY_OPTIONS = [
+  { label: "Burkina Faso", value: "bf", prefix: "+226" },
+  { label: "Sénégal", value: "sn", prefix: "+221" },
+  { label: "Bénin", value: "bj", prefix: "+229" },
+  { label: "Côte d'Ivoire", value: "ci", prefix: "+225" },
+]
+
+const DEFAULT_COUNTRY_VALUE = "ci"
+
+const buildInternationalPhone = (input: string, countryValue: string) => {
+  const country = COUNTRY_OPTIONS.find(option => option.value === countryValue)
+  if (!country) return input.trim()
+
+  let sanitized = input.trim().replace(/\s+/g, "")
+  if (!sanitized) return `${country.prefix}`
+
+  if (sanitized.startsWith(country.prefix)) {
+    sanitized = sanitized.slice(country.prefix.length)
+  } else {
+    const numericPrefix = country.prefix.replace("+", "")
+    if (sanitized.startsWith(numericPrefix)) {
+      sanitized = sanitized.slice(numericPrefix.length)
+    }
+  }
+
+  if (sanitized.startsWith("+")) {
+    sanitized = sanitized.slice(1)
+  }
+
+  return `${country.prefix}${sanitized}`
+}
+
+const parsePhoneByCountry = (phone: string) => {
+  const sanitized = phone.replace(/\s+/g, "")
+  for (const country of COUNTRY_OPTIONS) {
+    if (sanitized.startsWith(country.prefix)) {
+      return {
+        countryValue: country.value,
+        localNumber: sanitized.slice(country.prefix.length),
+      }
+    }
+  }
+  return {
+    countryValue: DEFAULT_COUNTRY_VALUE,
+    localNumber: sanitized,
+  }
+}
 
 interface PhoneStepProps {
   selectedNetwork: Network | null
@@ -38,6 +87,8 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
   const [newPhone, setNewPhone] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [phoneToDelete, setPhoneToDelete] = useState<UserPhone | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<string>(DEFAULT_COUNTRY_VALUE)
+  const [editingCountry, setEditingCountry] = useState<string>(DEFAULT_COUNTRY_VALUE)
 
   useEffect(() => {
     if (selectedNetwork) {
@@ -62,12 +113,15 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
 
   const handleAddPhone = async () => {
     if (!newPhone.trim() || !selectedNetwork) return
+
+    const phoneWithPrefix = buildInternationalPhone(newPhone, selectedCountry)
     
     setIsSubmitting(true)
     try {
-      const newPhoneData = await phoneApi.create(newPhone.trim(), selectedNetwork.id)
+      const newPhoneData = await phoneApi.create(phoneWithPrefix, selectedNetwork.id)
       setPhones(prev => [...prev, newPhoneData])
       setNewPhone("")
+      setSelectedCountry(DEFAULT_COUNTRY_VALUE)
       setIsAddDialogOpen(false)
       toast.success("Numéro de téléphone ajouté avec succès")
       // Auto-select and advance
@@ -84,12 +138,14 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
 
   const handleEditPhone = async () => {
     if (!newPhone.trim() || !editingPhone || !selectedNetwork) return
+
+    const phoneWithPrefix = buildInternationalPhone(newPhone, editingCountry)
     
     setIsSubmitting(true)
     try {
       const updatedPhone = await phoneApi.update(
         editingPhone.id,
-        newPhone.trim(),
+        phoneWithPrefix,
         selectedNetwork.id
       )
       setPhones(prev => prev.map(phone => 
@@ -97,6 +153,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
       ))
       setNewPhone("")
       setEditingPhone(null)
+      setEditingCountry(DEFAULT_COUNTRY_VALUE)
       setIsEditDialogOpen(false)
       toast.success("Numéro de téléphone modifié avec succès")
     } catch (error) {
@@ -127,9 +184,17 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
   }
 
   const openEditDialog = (phone: UserPhone) => {
+    const { countryValue, localNumber } = parsePhoneByCountry(phone.phone)
     setEditingPhone(phone)
-    setNewPhone(phone.phone)
+    setEditingCountry(countryValue)
+    setNewPhone(localNumber)
     setIsEditDialogOpen(true)
+  }
+
+  const openAddDialog = () => {
+    setSelectedCountry(DEFAULT_COUNTRY_VALUE)
+    setNewPhone("")
+    setIsAddDialogOpen(true)
   }
 
   if (!selectedNetwork) {
@@ -211,7 +276,10 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
               {phones.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">Aucun numéro de téléphone trouvé</p>
-                  <Button onClick={() => setIsAddDialogOpen(true)} className="h-11 sm:h-10 text-sm sm:text-base">
+                  <Button
+                    onClick={openAddDialog}
+                    className="h-11 sm:h-10 text-sm sm:text-base"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un numéro
                   </Button>
@@ -221,7 +289,7 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
               {phones.length > 0 && (
                 <Button 
                   variant="outline" 
-                  onClick={() => setIsAddDialogOpen(true)}
+                  onClick={openAddDialog}
                   className="w-full h-11 sm:h-10 text-sm sm:text-base"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -240,14 +308,32 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
             <DialogTitle className="text-lg sm:text-xl">Ajouter un numéro de téléphone</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Numéro de téléphone</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={selectedCountry}
+                  onValueChange={setSelectedCountry}
+                >
+                  <SelectTrigger className="w-[170px]">
+                    <SelectValue placeholder="Choisir un pays" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map(country => (
+                      <SelectItem key={country.value} value={country.value}>
+                        {country.label} ({country.prefix})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               <Input
                 id="phone"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="Ex: +225 07 12 34 56 78"
-                className="h-11 sm:h-10 text-base sm:text-sm"
+                  placeholder="Ex: 07 12 34 56 78"
+                  className="h-11 sm:h-10 text-base sm:text-sm flex-1"
               />
+              </div>
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -275,14 +361,32 @@ export function PhoneStep({ selectedNetwork, selectedPhone, onSelect, onNext }: 
             <DialogTitle className="text-lg sm:text-xl">Modifier le numéro de téléphone</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
+              <Label htmlFor="editPhone">Numéro de téléphone</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={editingCountry}
+                  onValueChange={setEditingCountry}
+                >
+                  <SelectTrigger className="w-[170px]">
+                    <SelectValue placeholder="Choisir un pays" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map(country => (
+                      <SelectItem key={country.value} value={country.value}>
+                        {country.label} ({country.prefix})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               <Input
                 id="editPhone"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="Ex: +225 07 12 34 56 78"
-                className="h-11 sm:h-10 text-base sm:text-sm"
+                  placeholder="Ex: 07 12 34 56 78"
+                  className="h-11 sm:h-10 text-base sm:text-sm flex-1"
               />
+              </div>
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
