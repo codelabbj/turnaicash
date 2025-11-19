@@ -6,6 +6,8 @@ import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DevTools } from "@/components/dev-tools"
 import { Toaster } from "react-hot-toast"
+import { ErudaLoader } from "@/components/eruda-loader"
+
 
 const inter = Inter({ subsets: ["latin"] })
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
@@ -31,6 +33,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <ErudaLoader />
             {children}
             <Toaster position="top-right" />
             <DevTools />

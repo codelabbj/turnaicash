@@ -94,6 +94,11 @@ export default function DepositPage() {
       return false
     }
 
+    // Check if deposit_api is "connect"
+    if (!selectedNetwork.deposit_api || selectedNetwork.deposit_api.toLowerCase() !== "connect") {
+      return false
+    }
+
     try {
       const settings = await settingsApi.get()
       const moovPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
