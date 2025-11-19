@@ -29,6 +29,30 @@ const isFirebaseConfigValid = (): boolean => {
   );
 };
 
+// Check if browser supports Firebase messaging APIs
+const isBrowserSupported = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
+  // Check for service worker support
+  if (!('serviceWorker' in navigator)) {
+    return false;
+  }
+  
+  // Check for Push API support
+  if (!('PushManager' in window)) {
+    return false;
+  }
+  
+  // Check if running in secure context (HTTPS or localhost)
+  if (!window.isSecureContext) {
+    return false;
+  }
+  
+  return true;
+};
+
 // Initialize Firebase only if config is valid
 let app: FirebaseApp | null = null;
 if (isFirebaseConfigValid()) {
@@ -53,15 +77,17 @@ if (isFirebaseConfigValid()) {
 // export const db = getFirestore(app);
 // export const storage = getStorage(app);
 
-// Initialize messaging (only in browser and if app is initialized)
+// Initialize messaging (only in browser, if app is initialized, and browser supports it)
 let messaging: Messaging | null = null;
-if (typeof window !== 'undefined' && app) {
+if (typeof window !== 'undefined' && app && isBrowserSupported()) {
   try {
     messaging = getMessaging(app);
   } catch (error) {
     console.error('Firebase messaging initialization error:', error);
     messaging = null;
   }
+} else if (typeof window !== 'undefined' && app && !isBrowserSupported()) {
+  console.warn('Firebase messaging is not supported in this browser. Service Workers and Push API are required.');
 }
 
 export { messaging };
@@ -282,9 +308,7 @@ export const fcmService = FCMService.getInstance();
 
 // Utility functions
 export const isFirebaseSupported = (): boolean => {
-  return typeof window !== 'undefined' && 
-         'serviceWorker' in navigator && 
-         'PushManager' in window;
+  return isBrowserSupported();
 };
 
 export const getNotificationPermission = (): NotificationPermission => {
