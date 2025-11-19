@@ -17,12 +17,35 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+// Check if required Firebase config values are present
+const isFirebaseConfigValid = (): boolean => {
+  return !!(
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId
+  );
+};
+
+// Initialize Firebase only if config is valid
+let app: FirebaseApp | null = null;
+if (isFirebaseConfigValid()) {
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    app = null;
+  }
 } else {
-  app = getApps()[0];
+  if (typeof window !== 'undefined') {
+    console.warn('Firebase configuration is incomplete. Please check your environment variables.');
+  }
 }
 
 // Initialize Firebase services (commented out - not needed for FCM notifications)
@@ -30,10 +53,15 @@ if (getApps().length === 0) {
 // export const db = getFirestore(app);
 // export const storage = getStorage(app);
 
-// Initialize messaging (only in browser)
+// Initialize messaging (only in browser and if app is initialized)
 let messaging: Messaging | null = null;
-if (typeof window !== 'undefined') {
-  messaging = getMessaging(app);
+if (typeof window !== 'undefined' && app) {
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.error('Firebase messaging initialization error:', error);
+    messaging = null;
+  }
 }
 
 export { messaging };
