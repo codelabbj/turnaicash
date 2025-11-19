@@ -4,9 +4,9 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
-import { DevTools } from "@/components/dev-tools"
+// import { DevTools } from "@/components/dev-tools"
 import { Toaster } from "react-hot-toast"
-import { ErudaLoader } from "@/components/eruda-loader"
+// import { ErudaLoader } from "@/components/eruda-loader"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -33,10 +33,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ErudaLoader />
+            {/* <ErudaLoader /> */}
             {children}
             <Toaster position="top-right" />
-            <DevTools />
+            {/* <DevTools /> */}
           </AuthProvider>
         </ThemeProvider>
       </body>
