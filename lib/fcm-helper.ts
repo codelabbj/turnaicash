@@ -1,4 +1,5 @@
 import { fcmService } from './firebase';
+import api from './api';
 
 /**
  * Initialize FCM and get token
@@ -62,37 +63,32 @@ export async function initializeFCM(userId?: string): Promise<string | null> {
 
 /**
  * Send FCM token to backend
- * @param token FCM token
- * @param userId Optional user ID
+ * @param token FCM token (registration_id)
+ * @param userId User ID (required)
  * @returns Promise<boolean> Success status
  */
 export async function sendTokenToBackend(
   token: string, 
   userId?: string
 ): Promise<boolean> {
+  if (!userId) {
+    console.warn('[FCM] User ID is required to send token to backend');
+    return false;
+  }
+
   try {
-    // Try to send to your backend API
-    const response = await fetch('/api/fcm/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token,
-        platform: 'web',
-        userId: userId || null,
-      }),
+    // Send to the devices endpoint with the required payload format
+    await api.post('/mobcash/devices/', {
+      registration_id: token,
+      type: 'web',
+      user_id: userId,
     });
 
-    if (response.ok) {
-      console.log('FCM token sent to backend successfully');
-      return true;
-    } else {
-      console.error('Failed to send FCM token to backend:', response.statusText);
-      return false;
-    }
-  } catch (error) {
-    console.error('Error sending token to backend:', error);
+    console.log('[FCM] Token sent to backend successfully');
+    return true;
+  } catch (error: any) {
+    console.error('[FCM] Error sending token to backend:', error);
+    // Don't show toast error for FCM token registration failures
     return false;
   }
 }

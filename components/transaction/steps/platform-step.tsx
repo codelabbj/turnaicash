@@ -81,9 +81,18 @@ export function PlatformStep({ selectedPlatform, onSelect, onNext }: PlatformSte
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm sm:text-base truncate">{platform.name}</h3>
                     {(platform.city || platform.street) && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {[platform.city, platform.street].filter(Boolean).join(", ")}
-                      </p>
+                      <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                        {platform.city && (
+                          <p className="truncate">
+                            <span className="font-medium">Ville:</span> {platform.city}
+                          </p>
+                        )}
+                        {platform.street && (
+                          <p className="truncate">
+                            <span className="font-medium">Rue:</span> {platform.street}
+                          </p>
+                        )}
+                      </div>
                     )}
                     <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-1">
                       <Badge variant="outline" className="text-[10px] sm:text-xs whitespace-nowrap">

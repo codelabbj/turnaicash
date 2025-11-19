@@ -115,11 +115,20 @@ export function AmountStep({
             <span className="font-medium text-xs sm:text-sm text-right break-words">{selectedPlatform.name}</span>
           </div>
           
-          {(selectedPlatform.city || selectedPlatform.street) && (
+          {selectedPlatform.city && (
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs sm:text-sm text-muted-foreground">Adresse</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">Ville</span>
               <span className="font-medium text-xs sm:text-sm text-right break-words">
-                {[selectedPlatform.city, selectedPlatform.street].filter(Boolean).join(", ")}
+                {selectedPlatform.city}
+              </span>
+            </div>
+          )}
+          
+          {selectedPlatform.street && (
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs sm:text-sm text-muted-foreground">Rue</span>
+              <span className="font-medium text-xs sm:text-sm text-right break-words">
+                {selectedPlatform.street}
               </span>
             </div>
           )}

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 // import { DevTools } from "@/components/dev-tools"
 import { Toaster } from "react-hot-toast"
 // import { ErudaLoader } from "@/components/eruda-loader"
+import { Suspense } from "react"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -22,7 +23,7 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
-}>) {
+}>): React.JSX.Element {
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
@@ -34,7 +35,9 @@ export default function RootLayout({
         >
           <AuthProvider>
             {/* <ErudaLoader /> */}
-            {children}
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
             <Toaster position="top-right" />
             {/* <DevTools /> */}
           </AuthProvider>

@@ -212,28 +212,14 @@ export class FCMService {
 
   /**
    * Send token to server
+   * Note: Token sending is handled by sendTokenToBackend in fcm-helper.ts
+   * which has access to userId. This method is kept for backward compatibility
+   * but does not send the token automatically.
    */
   private async sendTokenToServer(token: string): Promise<void> {
-    try {
-      // Replace with your API endpoint
-      const response = await fetch('/api/fcm/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          platform: 'web',
-          userId: null, // UserId should be passed to setupNotifications if needed
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send token to server');
-      }
-    } catch (error) {
-      console.error('Error sending token to server:', error);
-    }
+    // Token sending is handled by sendTokenToBackend in fcm-helper.ts
+    // which sends to /mobcash/devices with proper payload format
+    console.log('[FCM] Token generated. Use sendTokenToBackend() to send to server with userId.');
   }
 
   /**
