@@ -15,7 +15,8 @@ import type { Platform, UserAppId, Network, UserPhone } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { extractTimeErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ChevronLeft, Copy } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,9 @@ export default function DepositPage() {
   // Transaction link modal
   const [isTransactionLinkModalOpen, setIsTransactionLinkModalOpen] = useState(false)
   const [transactionLink, setTransactionLink] = useState<string | null>(null)
+  const [isMoovUssdModalOpen, setIsMoovUssdModalOpen] = useState(false)
+  const [moovUssdCode, setMoovUssdCode] = useState<string | null>(null)
+  const [moovMerchantPhone, setMoovMerchantPhone] = useState<string | null>(null)
 
   // Redirect if not authenticated
   if (!user) {
@@ -65,6 +69,68 @@ export default function DepositPage() {
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const attemptDialerRedirect = (ussdCode: string) => {
+    try {
+      const link = document.createElement("a")
+      link.href = `tel:${ussdCode}`
+      link.style.display = "none"
+      document.body.appendChild(link)
+      link.click()
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link)
+        }
+      }, 100)
+    } catch (error) {
+      console.error("Impossible d'ouvrir automatiquement le composeur:", error)
+    }
+  }
+
+  const handleMoovUssdFlow = async (amountValue: number) => {
+    if (!selectedNetwork || selectedNetwork.name?.toLowerCase() !== "moov") {
+      return false
+    }
+
+    try {
+      const settings = await settingsApi.get()
+      const moovPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
+
+      if (!moovPhone) {
+        return false
+      }
+
+      const ussdAmount = Math.max(1, Math.floor(amountValue * 0.99))
+      const ussdCode = `*155*2*1*${moovPhone}*${ussdAmount}#`
+
+      setMoovMerchantPhone(moovPhone)
+      setMoovUssdCode(ussdCode)
+      setIsMoovUssdModalOpen(true)
+
+      attemptDialerRedirect(ussdCode)
+
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 2000)
+
+      return true
+    } catch (error) {
+      console.error("Erreur lors de la récupération des paramètres Moov:", error)
+      return false
+    }
+  }
+
+  const handleCopyUssdCode = async () => {
+    if (!moovUssdCode) return
+
+    try {
+      await navigator.clipboard.writeText(moovUssdCode)
+      toast.success("Code USSD copié")
+    } catch (error) {
+      console.error("Impossible de copier le code USSD:", error)
+      toast.error("Copie impossible, copiez manuellement le code.")
     }
   }
 
@@ -93,40 +159,8 @@ export default function DepositPage() {
         setIsTransactionLinkModalOpen(true)
         setIsConfirmationOpen(false)
       } else {
-        // Check if network is Moov and redirect to phone dialer with USSD code
-        const isMoovNetwork = selectedNetwork.name?.toLowerCase() === "moov"
-        if (isMoovNetwork) {
-          try {
-            const settings = await settingsApi.get()
-            const moovMerchantPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
-            if (moovMerchantPhone) {
-              // Calculate amount - 1% (99% of amount)
-              const ussdAmount = Math.floor(amount * 0.99)
-              // Format USSD code: *155*2*1*{merchant_phone}*{amount-1%}#
-              const ussdCode = `*155*2*1*${moovMerchantPhone}*${ussdAmount}#`
-              // Use tel: protocol directly with USSD code (don't encode * and #)
-              // Create a temporary link and click it to open phone dialer
-              const link = document.createElement('a')
-              link.href = `tel:${ussdCode}`
-              link.style.display = 'none'
-              document.body.appendChild(link)
-              link.click()
-              // Remove link after a short delay
-              setTimeout(() => {
-                document.body.removeChild(link)
-              }, 100)
-              // Navigate to dashboard after a delay to allow dialer to open
-              setTimeout(() => {
-                router.push("/dashboard")
-              }, 2000)
-            } else {
-              router.push("/dashboard")
-            }
-          } catch (error) {
-            console.error("Error fetching settings for Moov USSD:", error)
-            router.push("/dashboard")
-          }
-        } else {
+        const handled = await handleMoovUssdFlow(amount)
+        if (!handled) {
           router.push("/dashboard")
         }
       }
@@ -149,40 +183,10 @@ export default function DepositPage() {
       setIsTransactionLinkModalOpen(false)
       setTransactionLink(null)
       
-      // Check if network is Moov and redirect to phone dialer with USSD code
-      const isMoovNetwork = selectedNetwork?.name?.toLowerCase() === "moov"
-      if (isMoovNetwork && selectedNetwork) {
-        try {
-          const settings = await settingsApi.get()
-          const moovMerchantPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
-          if (moovMerchantPhone && amount > 0) {
-            // Calculate amount - 1% (99% of amount)
-            const ussdAmount = Math.floor(amount * 0.99)
-            // Format USSD code: *155*2*1*{merchant_phone}*{amount-1%}#
-            const ussdCode = `*155*2*1*${moovMerchantPhone}*${ussdAmount}#`
-            // Use tel: protocol directly with USSD code (don't encode * and #)
-            // Create a temporary link and click it to open phone dialer
-            const link = document.createElement('a')
-            link.href = `tel:${ussdCode}`
-            link.style.display = 'none'
-            document.body.appendChild(link)
-            link.click()
-            // Remove link after a short delay
-            setTimeout(() => {
-              document.body.removeChild(link)
-            }, 100)
-            // Navigate to dashboard after a delay to allow dialer to open
-            setTimeout(() => {
-              router.push("/dashboard")
-            }, 2000)
-            return
-          }
-        } catch (error) {
-          console.error("Error fetching settings for Moov USSD:", error)
-        }
+      const handled = await handleMoovUssdFlow(amount)
+      if (!handled) {
+        router.push("/dashboard")
       }
-      
-      router.push("/dashboard")
     }
   }
 
@@ -337,6 +341,49 @@ export default function DepositPage() {
               <Button onClick={handleContinueTransaction}>
                 Continuer
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Moov USSD fallback modal */}
+        <Dialog open={isMoovUssdModalOpen} onOpenChange={setIsMoovUssdModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Finaliser la transaction Moov</DialogTitle>
+              <DialogDescription asChild>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Nous n&apos;avons pas pu ouvrir automatiquement le composeur téléphonique. Copiez le code ci-dessous et collez-le dans l&apos;application Téléphone pour terminer votre transaction Moov.
+                  </p>
+                  {moovMerchantPhone && (
+                    <p>
+                      <span className="font-semibold text-foreground">Numéro marchand&nbsp;:</span> {moovMerchantPhone}
+                    </p>
+                  )}
+                  {moovUssdCode ? (
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Code USSD à composer :</p>
+                      <div className="flex items-center gap-2">
+                        <Input value={moovUssdCode} readOnly className="font-mono text-sm" />
+                        <Button variant="outline" size="icon" onClick={handleCopyUssdCode}>
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">Copier le code</span>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Collez ce code dans votre composeur téléphonique et validez pour poursuivre.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-destructive text-sm">
+                      Impossible de générer le code USSD automatiquement. Veuillez réessayer ou contacter le support.
+                    </p>
+                  )}
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setIsMoovUssdModalOpen(false)}>J&apos;ai compris</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
