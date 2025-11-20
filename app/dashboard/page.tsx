@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [adImageErrors, setAdImageErrors] = useState<Set<string>>(new Set())
   const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false)
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false)
 
   const fetchRecentTransactions = async () => {
     try {
@@ -108,14 +109,14 @@ export default function DashboardPage() {
 
   // Auto-play carousel
   useEffect(() => {
-    if (!carouselApi || advertisements.length <= 1) return
+    if (!carouselApi || advertisements.length <= 1 || isCarouselPaused) return
 
     const interval = setInterval(() => {
       carouselApi.scrollNext()
     }, 5000) // Change slide every 5 seconds
 
     return () => clearInterval(interval)
-  }, [carouselApi, advertisements.length])
+  }, [carouselApi, advertisements.length, isCarouselPaused])
 
   const getStatusBadge = (status: Transaction["status"]) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
@@ -237,7 +238,7 @@ export default function DashboardPage() {
         <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors p-0 py-0">
           <CardContent className="p-0">
             {isLoadingAd ? (
-              <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30 flex items-center justify-center">
+              <div className="relative w-full aspect-[16/9] sm:aspect-[17/9] lg:aspect-[18/9] bg-muted/30 flex items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : advertisements.length > 0 ? (
@@ -248,6 +249,10 @@ export default function DashboardPage() {
                   loop: true,
                 }}
                 className="w-full"
+                onTouchStart={() => setIsCarouselPaused(true)}
+                onTouchEnd={() => setIsCarouselPaused(false)}
+                onMouseEnter={() => setIsCarouselPaused(true)}
+                onMouseLeave={() => setIsCarouselPaused(false)}
               >
                 <CarouselContent className="-ml-0">
                   {advertisements.map((ad) => {
@@ -260,7 +265,7 @@ export default function DashboardPage() {
                     
                     return (
                       <CarouselItem key={adId} className="pl-0">
-                        <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30">
+                        <div className="relative w-full aspect-[16/9] sm:aspect-[17/9] lg:aspect-[18/9] bg-muted/30">
                           <Image
                             src={imageUrl}
                             alt={ad.title || "Publicité"}
@@ -285,7 +290,7 @@ export default function DashboardPage() {
                 </CarouselContent>
               </Carousel>
             ) : (
-              <div className="relative w-full aspect-[16/9] sm:aspect-[20/9] bg-muted/30 flex items-center justify-center">
+              <div className="relative w-full aspect-[16/9] sm:aspect-[17/9] lg:aspect-[18/9] bg-muted/30 flex items-center justify-center">
                 <div className="text-center p-4">
                   <p className="text-sm sm:text-base text-muted-foreground font-medium">Espace publicitaire</p>
                   <p className="text-xs text-muted-foreground/70 mt-1">Publicité</p>

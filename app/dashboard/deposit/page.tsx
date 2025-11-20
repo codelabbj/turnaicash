@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { TransactionProgressBar } from "@/components/transaction/progress-bar"
@@ -116,10 +116,6 @@ export default function DepositPage() {
 
       attemptDialerRedirect(ussdCode)
 
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 2000)
-
       return true
     } catch (error) {
       console.error("Erreur lors de la récupération des paramètres Moov:", error)
@@ -136,6 +132,16 @@ export default function DepositPage() {
     } catch (error) {
       console.error("Impossible de copier le code USSD:", error)
       toast.error("Copie impossible, copiez manuellement le code.")
+    }
+  }
+
+  const handleMoovModalClose = (open: boolean) => {
+    if (!open) {
+      // Only navigate to dashboard when user closes the modal
+      setIsMoovUssdModalOpen(false)
+      router.push("/dashboard")
+    } else {
+      setIsMoovUssdModalOpen(true)
     }
   }
 
@@ -351,7 +357,7 @@ export default function DepositPage() {
         </Dialog>
 
         {/* Moov USSD fallback modal */}
-        <Dialog open={isMoovUssdModalOpen} onOpenChange={setIsMoovUssdModalOpen}>
+        <Dialog open={isMoovUssdModalOpen} onOpenChange={handleMoovModalClose}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Finaliser la transaction Moov</DialogTitle>
@@ -388,7 +394,7 @@ export default function DepositPage() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button onClick={() => setIsMoovUssdModalOpen(false)}>J&apos;ai compris</Button>
+              <Button onClick={() => handleMoovModalClose(false)}>J&apos;ai compris</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
