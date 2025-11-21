@@ -33,14 +33,29 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            {/* <ErudaLoader /> */}
-            <Suspense fallback={null}>
-              {children}
-            </Suspense>
-            <Toaster position="top-right" />
-            {/* <DevTools /> */}
-          </AuthProvider>
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-1 flex flex-col">
+              <AuthProvider>
+                {/* <ErudaLoader /> */}
+                <Suspense fallback={null}>
+                  {children}
+                </Suspense>
+                <Toaster position="top-right" />
+                {/* <DevTools /> */}
+              </AuthProvider>
+            </div>
+            <footer className="w-full py-4 text-center text-xs sm:text-sm text-muted-foreground border-t bg-background/80">
+              Développé par{" "}
+              <a
+                href="https://wa.me/22947030588"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
+                Code Lab
+              </a>
+            </footer>
+          </div>
         </ThemeProvider>
       </body>
     </html>
