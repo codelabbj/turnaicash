@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "react-hot-toast"
 // import { ErudaLoader } from "@/components/eruda-loader"
 import { Suspense } from "react"
+import { Footer } from "@/components/footer"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -43,17 +44,7 @@ export default function RootLayout({
                 {/* <DevTools /> */}
               </AuthProvider>
             </div>
-            <footer className="w-full py-4 text-center text-xs sm:text-sm text-muted-foreground border-t bg-background/80">
-              Développé par{" "}
-              <a
-                href="https://wa.me/22947030588"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                Code Lab
-              </a>
-            </footer>
+            <Footer />
           </div>
         </ThemeProvider>
       </body>

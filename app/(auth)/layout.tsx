@@ -7,7 +7,7 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+    <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="mb-4">
         <Image
           src="/Turaincash-logo.png"
