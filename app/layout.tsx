@@ -16,7 +16,6 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Turaincash - Gestion de Dépôts et Retraits",
   description: "Plateforme de gestion de transactions pour paris sportifs",
-    generator: 'v0.app'
 }
 
 export default function RootLayout({
