@@ -13,8 +13,8 @@ import {
 import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { transactionApi, advertisementApi } from "@/lib/api-client"
-import type { Transaction, Advertisement } from "@/lib/types"
+import { transactionApi, advertisementApi, settingsApi } from "@/lib/api-client"
+import type { Transaction, Advertisement, Settings } from "@/lib/types"
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false)
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
   const [isCarouselPaused, setIsCarouselPaused] = useState(false)
+  const [settings, setSettings] = useState<Settings | null>(null)
 
   const fetchRecentTransactions = async () => {
     try {
@@ -77,10 +78,22 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      const settingsData = await settingsApi.get()
+      setSettings(settingsData)
+    } catch (error) {
+      console.error("Error fetching settings:", error)
+      // Set default values on error
+      setSettings({ whatsapp_phone: "0594811767", telegram: "0594811767" })
+    }
+  }
+
   useEffect(() => {
     if (user) {
       fetchRecentTransactions()
       fetchAdvertisement()
+      fetchSettings()
     }
   }, [user])
 
@@ -412,8 +425,8 @@ export default function DashboardPage() {
             variant="ghost"
             className="w-full justify-start gap-3 h-auto py-3"
             onClick={() => {
-              // Replace with your WhatsApp number (format: country code + number without + or spaces)
-              window.open("https://wa.me/message/QWHEMKHU72TUK1 ", "_blank")
+              const whatsappNumber = settings?.whatsapp_phone || "0594811767"
+              window.open(`https://wa.me/message/${whatsappNumber}`, "_blank")
               setIsChatPopoverOpen(false)
             }}
           >
@@ -436,8 +449,8 @@ export default function DashboardPage() {
             variant="ghost"
             className="w-full justify-start gap-3 h-auto py-3"
             onClick={() => {
-              // Replace with your Telegram username
-              window.open("https://t.me/Turaincash", "_blank")
+              const telegramUsername = settings?.telegram || "0594811767"
+              window.open(`https://t.me/${telegramUsername}`, "_blank")
               setIsChatPopoverOpen(false)
             }}
           >

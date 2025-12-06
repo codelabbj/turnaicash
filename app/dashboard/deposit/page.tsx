@@ -51,6 +51,9 @@ export default function DepositPage() {
   const [isMoovUssdModalOpen, setIsMoovUssdModalOpen] = useState(false)
   const [moovUssdCode, setMoovUssdCode] = useState<string | null>(null)
   const [moovMerchantPhone, setMoovMerchantPhone] = useState<string | null>(null)
+  const [isOrangeUssdModalOpen, setIsOrangeUssdModalOpen] = useState(false)
+  const [orangeUssdCode, setOrangeUssdCode] = useState<string | null>(null)
+  const [orangeMerchantPhone, setOrangeMerchantPhone] = useState<string | null>(null)
 
   // Redirect if not authenticated
   if (!user) {
@@ -123,11 +126,57 @@ export default function DepositPage() {
     }
   }
 
+  const handleOrangeUssdFlow = async (amountValue: number) => {
+    if (!selectedNetwork || selectedNetwork.name?.toLowerCase() !== "orange") {
+      return false
+    }
+
+    // Check if deposit_api is "connect"
+    if (!selectedNetwork.deposit_api || selectedNetwork.deposit_api.toLowerCase() !== "connect") {
+      return false
+    }
+
+    try {
+      const settings = await settingsApi.get()
+      const orangePhone = settings.moov_merchant_phone || settings.moov_marchand_phone
+
+      if (!orangePhone) {
+        return false
+      }
+
+      const ussdAmount = Math.max(1, Math.floor(amountValue))
+      const ussdCode = `*144*2*1*${orangePhone}*${ussdAmount}#`
+
+      setOrangeMerchantPhone(orangePhone)
+      setOrangeUssdCode(ussdCode)
+      setIsOrangeUssdModalOpen(true)
+
+      attemptDialerRedirect(ussdCode)
+
+      return true
+    } catch (error) {
+      console.error("Erreur lors de la récupération des paramètres Orange:", error)
+      return false
+    }
+  }
+
   const handleCopyUssdCode = async () => {
     if (!moovUssdCode) return
 
     try {
       await navigator.clipboard.writeText(moovUssdCode)
+      toast.success("Code USSD copié")
+    } catch (error) {
+      console.error("Impossible de copier le code USSD:", error)
+      toast.error("Copie impossible, copiez manuellement le code.")
+    }
+  }
+
+  const handleCopyOrangeUssdCode = async () => {
+    if (!orangeUssdCode) return
+
+    try {
+      await navigator.clipboard.writeText(orangeUssdCode)
       toast.success("Code USSD copié")
     } catch (error) {
       console.error("Impossible de copier le code USSD:", error)
@@ -142,6 +191,16 @@ export default function DepositPage() {
       router.push("/dashboard")
     } else {
       setIsMoovUssdModalOpen(true)
+    }
+  }
+
+  const handleOrangeModalClose = (open: boolean) => {
+    if (!open) {
+      // Only navigate to dashboard when user closes the modal
+      setIsOrangeUssdModalOpen(false)
+      router.push("/dashboard")
+    } else {
+      setIsOrangeUssdModalOpen(true)
     }
   }
 
@@ -163,16 +222,32 @@ export default function DepositPage() {
       })
       
       toast.success("Dépôt initié avec succès!")
-      
+
       // Check if transaction_link exists in the response
       if (response.transaction_link) {
         setTransactionLink(response.transaction_link)
         setIsTransactionLinkModalOpen(true)
         setIsConfirmationOpen(false)
       } else {
-        const handled = await handleMoovUssdFlow(amount)
-        if (!handled) {
-          router.push("/dashboard")
+        // Handle Orange network logic
+        if (selectedNetwork?.name?.toLowerCase() === "orange" &&
+            selectedNetwork.deposit_api?.toLowerCase() === "connect") {
+          if (selectedNetwork.payment_by_link === false) {
+            // Use USSD code for Orange when payment_by_link is false
+            const handled = await handleOrangeUssdFlow(amount)
+            if (!handled) {
+              router.push("/dashboard")
+            }
+          } else {
+            // payment_by_link is true, but no transaction_link in response, redirect to dashboard
+            router.push("/dashboard")
+          }
+        } else {
+          // Handle Moov network or other networks
+          const handled = await handleMoovUssdFlow(amount)
+          if (!handled) {
+            router.push("/dashboard")
+          }
         }
       }
     } catch (error: any) {
@@ -395,6 +470,49 @@ export default function DepositPage() {
             </DialogHeader>
             <DialogFooter>
               <Button onClick={() => handleMoovModalClose(false)}>J&apos;ai compris</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Orange USSD fallback modal */}
+        <Dialog open={isOrangeUssdModalOpen} onOpenChange={handleOrangeModalClose}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Finaliser la transaction Orange</DialogTitle>
+              <DialogDescription asChild>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Nous n&apos;avons pas pu ouvrir automatiquement le composeur téléphonique. Copiez le code ci-dessous et collez-le dans l&apos;application Téléphone pour terminer votre transaction Orange.
+                  </p>
+                  {orangeMerchantPhone && (
+                    <p>
+                      <span className="font-semibold text-foreground">Numéro marchand&nbsp;:</span> {orangeMerchantPhone}
+                    </p>
+                  )}
+                  {orangeUssdCode ? (
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Code USSD à composer :</p>
+                      <div className="flex items-center gap-2">
+                        <Input value={orangeUssdCode} readOnly className="font-mono text-sm" />
+                        <Button variant="outline" size="icon" onClick={handleCopyOrangeUssdCode}>
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">Copier le code</span>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Collez ce code dans votre composeur téléphonique et validez pour poursuivre.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-destructive text-sm">
+                      Impossible de générer le code USSD automatiquement. Veuillez réessayer ou contacter le support.
+                    </p>
+                  )}
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => handleOrangeModalClose(false)}>J&apos;ai compris</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
