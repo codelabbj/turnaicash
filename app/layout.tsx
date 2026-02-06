@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast"
 // import { ErudaLoader } from "@/components/eruda-loader"
 import { Suspense } from "react"
 import { Footer } from "@/components/footer"
+import { NotificationManager } from "@/components/notification-manager"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -39,6 +40,7 @@ export default function RootLayout({
                 {/* <ErudaLoader /> */}
                 <Suspense fallback={null}>
                   {children}
+                  <NotificationManager />
                 </Suspense>
                 <Toaster position="top-right" />
                 {/* <DevTools /> */}

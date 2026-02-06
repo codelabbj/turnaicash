@@ -29,22 +29,22 @@ import {
 export default function DepositPage() {
   const router = useRouter()
   const { user } = useAuth()
-  
+
   // Step management
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 5
-  
+
   // Form data
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
   const [selectedBetId, setSelectedBetId] = useState<UserAppId | null>(null)
   const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null)
   const [selectedPhone, setSelectedPhone] = useState<UserPhone | null>(null)
   const [amount, setAmount] = useState(0)
-  
+
   // Confirmation dialog
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Transaction link modal
   const [isTransactionLinkModalOpen, setIsTransactionLinkModalOpen] = useState(false)
   const [transactionLink, setTransactionLink] = useState<string | null>(null)
@@ -220,7 +220,7 @@ export default function DepositPage() {
         network: selectedNetwork.id,
         source: "web"
       })
-      
+
       toast.success("Dépôt initié avec succès!")
 
       // Check if transaction_link exists in the response
@@ -231,7 +231,7 @@ export default function DepositPage() {
       } else {
         // Handle Orange network logic
         if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-            selectedNetwork.deposit_api?.toLowerCase() === "connect") {
+          selectedNetwork.deposit_api?.toLowerCase() === "connect") {
           if (selectedNetwork.payment_by_link === false) {
             // Use USSD code for Orange when payment_by_link is false
             const handled = await handleOrangeUssdFlow(amount)
@@ -268,7 +268,7 @@ export default function DepositPage() {
       window.open(transactionLink, "_blank", "noopener,noreferrer")
       setIsTransactionLinkModalOpen(false)
       setTransactionLink(null)
-      
+
       const handled = await handleMoovUssdFlow(amount)
       if (!handled) {
         router.push("/dashboard")
@@ -287,9 +287,9 @@ export default function DepositPage() {
       case 4:
         return selectedPhone !== null
       case 5:
-        return amount > 0 && selectedPlatform && 
-               amount >= selectedPlatform.minimun_deposit && 
-               amount <= selectedPlatform.max_deposit
+        return amount > 0 && selectedPlatform &&
+          amount >= selectedPlatform.minimun_deposit &&
+          amount <= selectedPlatform.max_deposit
       default:
         return false
     }
@@ -303,6 +303,7 @@ export default function DepositPage() {
             selectedPlatform={selectedPlatform}
             onSelect={setSelectedPlatform}
             onNext={handleNext}
+            type="deposit"
           />
         )
       case 2:
@@ -333,12 +334,12 @@ export default function DepositPage() {
           />
         )
       case 5:
-    return (
+        return (
           <AmountStep
             amount={amount}
             setAmount={setAmount}
             withdriwalCode=""
-            setWithdriwalCode={() => {}}
+            setWithdriwalCode={() => { }}
             selectedPlatform={selectedPlatform}
             selectedBetId={selectedBetId}
             selectedNetwork={selectedNetwork}
@@ -358,11 +359,11 @@ export default function DepositPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Effectuer un dépôt</h1>
-      </div>
+        </div>
 
         {/* Progress Bar */}
-        <TransactionProgressBar 
-          currentStep={currentStep} 
+        <TransactionProgressBar
+          currentStep={currentStep}
           totalSteps={totalSteps}
           type="deposit"
         />
@@ -370,7 +371,7 @@ export default function DepositPage() {
         {/* Current Step */}
         <div className="min-h-[250px] sm:min-h-[300px] lg:min-h-[400px] overflow-x-hidden">
           {renderCurrentStep()}
-              </div>
+        </div>
 
         {/* Navigation - Show Previous button for steps 2-5 */}
         {currentStep > 1 && currentStep <= 5 && (
@@ -516,7 +517,7 @@ export default function DepositPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-              </div>
+      </div>
     </div>
   )
 }

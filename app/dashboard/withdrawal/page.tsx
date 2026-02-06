@@ -20,11 +20,11 @@ import { ChevronLeft } from "lucide-react"
 export default function WithdrawalPage() {
   const router = useRouter()
   const { user } = useAuth()
-  
+
   // Step management
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 5
-  
+
   // Form data
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
   const [selectedBetId, setSelectedBetId] = useState<UserAppId | null>(null)
@@ -32,7 +32,7 @@ export default function WithdrawalPage() {
   const [selectedPhone, setSelectedPhone] = useState<UserPhone | null>(null)
   const [amount, setAmount] = useState(0)
   const [withdriwalCode, setWithdriwalCode] = useState("")
-  
+
   // Confirmation dialog
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -74,9 +74,9 @@ export default function WithdrawalPage() {
         withdriwal_code: withdriwalCode,
         source: "web"
       })
-      
+
       toast.success("Retrait initié avec succès!")
-      
+
       router.push("/dashboard")
     } catch (error: any) {
       // Check for rate limit error (error_time_message)
@@ -102,10 +102,10 @@ export default function WithdrawalPage() {
       case 4:
         return selectedPhone !== null
       case 5:
-        return amount > 0 && selectedPlatform && 
-               withdriwalCode.length >= 4 &&
-               amount >= selectedPlatform.minimun_with && 
-               amount <= selectedPlatform.max_win
+        return amount > 0 && selectedPlatform &&
+          withdriwalCode.length >= 4 &&
+          amount >= selectedPlatform.minimun_with &&
+          amount <= selectedPlatform.max_win
       default:
         return false
     }
@@ -119,6 +119,7 @@ export default function WithdrawalPage() {
             selectedPlatform={selectedPlatform}
             onSelect={setSelectedPlatform}
             onNext={handleNext}
+            type="withdrawal"
           />
         )
       case 2:
@@ -149,7 +150,7 @@ export default function WithdrawalPage() {
           />
         )
       case 5:
-    return (
+        return (
           <AmountStep
             amount={amount}
             setAmount={setAmount}
@@ -174,11 +175,11 @@ export default function WithdrawalPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Effectuer un retrait</h1>
-      </div>
+        </div>
 
         {/* Progress Bar */}
-        <TransactionProgressBar 
-          currentStep={currentStep} 
+        <TransactionProgressBar
+          currentStep={currentStep}
           totalSteps={totalSteps}
           type="withdrawal"
         />
@@ -186,7 +187,7 @@ export default function WithdrawalPage() {
         {/* Current Step */}
         <div className="min-h-[250px] sm:min-h-[300px] lg:min-h-[400px] overflow-x-hidden">
           {renderCurrentStep()}
-              </div>
+        </div>
 
         {/* Navigation - Show Previous button for steps 2-5 */}
         {currentStep > 1 && currentStep <= 5 && (
@@ -221,7 +222,7 @@ export default function WithdrawalPage() {
           isLoading={isSubmitting}
         />
 
-              </div>
+      </div>
     </div>
   )
 }

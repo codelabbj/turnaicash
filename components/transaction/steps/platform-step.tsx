@@ -14,16 +14,17 @@ interface PlatformStepProps {
   selectedPlatform: Platform | null
   onSelect: (platform: Platform) => void
   onNext: () => void
+  type?: "deposit" | "withdrawal"
 }
 
-export function PlatformStep({ selectedPlatform, onSelect, onNext }: PlatformStepProps) {
+export function PlatformStep({ selectedPlatform, onSelect, onNext, type }: PlatformStepProps) {
   const [platforms, setPlatforms] = useState<Platform[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchPlatforms = async () => {
       try {
-        const data = await platformApi.getAll()
+        const data = await platformApi.getAll(type)
         // Filter only enabled platforms
         const enabledPlatforms = data.filter(platform => platform.enable)
         setPlatforms(enabledPlatforms)
@@ -57,11 +58,10 @@ export function PlatformStep({ selectedPlatform, onSelect, onNext }: PlatformSte
           {platforms.map((platform) => (
             <Card
               key={platform.id}
-              className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
-                selectedPlatform?.id === platform.id
+              className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${selectedPlatform?.id === platform.id
                   ? "ring-2 ring-deposit bg-green-500/10"
                   : "hover:bg-muted/50"
-              }`}
+                }`}
               onClick={() => {
                 onSelect(platform)
                 // Auto-advance to next step after a short delay
@@ -108,7 +108,7 @@ export function PlatformStep({ selectedPlatform, onSelect, onNext }: PlatformSte
             </Card>
           ))}
         </div>
-        
+
         {platforms.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">Aucune plateforme disponible</p>
