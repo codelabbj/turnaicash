@@ -1,6 +1,5 @@
 "use client"
 
-// new version
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -18,10 +17,6 @@ import { extractTimeErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, Copy } from "lucide-react"
-
-// import for didier (last transaction and transaction summary dialog)
-import { TransactionSummaryDialog } from "@/components/transaction/transaction-summary-dialog"
-import type { Transaction } from "@/lib/types"
 import {
   Dialog,
   DialogContent,
@@ -38,11 +33,6 @@ export default function DepositPage() {
   // Step management
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 5
-
-  // state management for didier (last transaction and transaction summary dialog)
-  const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null)
-  const [isTransactionSummaryOpen, setIsTransactionSummaryOpen] = useState(false)
-  const [initialDepositResponse, setInitialDepositResponse] = useState<Transaction | null>(null)
 
   // Form data
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
@@ -214,7 +204,7 @@ export default function DepositPage() {
     }
   }
 
-  /*const handleConfirmTransaction = async () => {
+  const handleConfirmTransaction = async () => {
     if (!selectedPlatform || !selectedBetId || !selectedNetwork || !selectedPhone) {
       toast.error("Données manquantes pour la transaction")
       return
@@ -271,73 +261,7 @@ export default function DepositPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }*/
-
-    // handleConfirmTransaction function with updated logic (by didier)
-    const handleConfirmTransaction = async () => {
-        if (!selectedPlatform || !selectedBetId || !selectedNetwork || !selectedPhone) {
-            toast.error("Données manquantes pour la transaction")
-            return
-        }
-
-        setIsSubmitting(true)
-        try {
-            const response = await transactionApi.createDeposit({
-            amount,
-            phone_number: selectedPhone.phone,
-            app: selectedPlatform.id,
-            user_app_id: selectedBetId.user_app_id,
-            network: selectedNetwork.id,
-            source: "web"
-            })
-
-            // Stocker la réponse initiale
-            setInitialDepositResponse(response)
-
-            // Fermer la confirmation dialog
-            setIsConfirmationOpen(false)
-
-            // Récupérer la dernière transaction
-            try {
-            const lastTrans = await transactionApi.getLastTransaction()
-            setLastTransaction(lastTrans)
-            setIsTransactionSummaryOpen(true)
-            } catch (error) {
-            console.error("Erreur lors de la récupération de la dernière transaction:", error)
-            // Continuer le flux normal même si on ne peut pas récupérer la transaction
-            if (response.transaction_link) {
-                setTransactionLink(response.transaction_link)
-                setIsTransactionLinkModalOpen(true)
-            } else {
-                if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-                selectedNetwork.deposit_api?.toLowerCase() === "connect") {
-                if (selectedNetwork.payment_by_link === false) {
-                    const handled = await handleOrangeUssdFlow(amount)
-                    if (!handled) {
-                    router.push("/dashboard")
-                    }
-                } else {
-                    router.push("/dashboard")
-                }
-                } else {
-                const handled = await handleMoovUssdFlow(amount)
-                if (!handled) {
-                    router.push("/dashboard")
-                }
-                }
-            }
-            }
-        } catch (error: any) {
-            const timeErrorMessage = extractTimeErrorMessage(error)
-            if (timeErrorMessage) {
-            toast.error(timeErrorMessage)
-            } else {
-            toast.error("Erreur lors de la création du dépôt")
-            }
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+  }
 
   const handleContinueTransaction = async () => {
     if (transactionLink) {
@@ -351,63 +275,6 @@ export default function DepositPage() {
       }
     }
   }
-
-
-
-  // handleCancelTransaction function
-  const handleCancelTransaction = async (reference: string) => {
-    await transactionApi.cancelTransaction(reference)
-    // Après annulation, rediriger vers le dashboard
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 1000)
-  }
-
-  // handleFinalizeTransaction function
-  const handleFinalizeTransaction = async (reference: string) => {
-  try {
-    // Appeler l'API de finalisation et récupérer la nouvelle transaction
-    const finalizedTransaction = await transactionApi.finalizeTransaction(reference)
-    
-    //console.log("Transaction finalisée:", finalizedTransaction)
-    
-    // Fermer le dialog de summary
-    setIsTransactionSummaryOpen(false)
-    
-    //Utiliser la transaction finalisée (qui a une nouvelle référence)
-    // Suivre l'ancienne logique avec cette nouvelle transaction
-    if (finalizedTransaction.transaction_link) {
-      setTransactionLink(finalizedTransaction.transaction_link)
-      setIsTransactionLinkModalOpen(true)
-    } else {
-      // Handle Orange network logic
-      if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-        selectedNetwork.deposit_api?.toLowerCase() === "connect") {
-        if (selectedNetwork.payment_by_link === false) {
-          // Use USSD code for Orange when payment_by_link is false
-          const handled = await handleOrangeUssdFlow(amount)
-          if (!handled) {
-            router.push("/dashboard")
-          }
-        } else {
-          // payment_by_link is true, but no transaction_link in response, redirect to dashboard
-          router.push("/dashboard")
-        }
-      } else {
-        // Handle Moov network or other networks
-        const handled = await handleMoovUssdFlow(amount)
-        if (!handled) {
-          router.push("/dashboard")
-        }
-      }
-    }
-  } catch (error) {
-    // L'erreur sera gérée par le TransactionSummaryDialog
-    throw error
-  }
-}
-
-
 
   const isStepValid = () => {
     switch (currentStep) {
@@ -650,22 +517,7 @@ export default function DepositPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        {/* Transaction summary dialog */}
-        <TransactionSummaryDialog
-          isOpen={isTransactionSummaryOpen}
-          onClose={() => {
-            setIsTransactionSummaryOpen(false)
-            //router.push("/dashboard")
-          }}
-          transaction={lastTransaction}
-          onCancel={handleCancelTransaction}
-          onFinalize={handleFinalizeTransaction}
-          isLoading={isSubmitting}
-        />
-
       </div>
-
-      
     </div>
   )
 }
