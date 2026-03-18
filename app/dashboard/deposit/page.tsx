@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, Copy } from "lucide-react"
 
-// import for didier (last transaction and transaction summary dialog)
 import { TransactionSummaryDialog } from "@/components/transaction/transaction-summary-dialog"
 import type { Transaction } from "@/lib/types"
 import {
@@ -39,10 +38,11 @@ export default function DepositPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 5
 
-  // state management for didier (last transaction and transaction summary dialog)
-  const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null)
-  const [isTransactionSummaryOpen, setIsTransactionSummaryOpen] = useState(false)
-  const [initialDepositResponse, setInitialDepositResponse] = useState<Transaction | null>(null)
+  // ── Pending transaction check (on mount) ─────────────────────────────────
+  const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null)
+  const [isPendingCheckDone, setIsPendingCheckDone] = useState(false)
+  const [isPendingDialogOpen, setIsPendingDialogOpen] = useState(false)
+  const [isPendingSubmitting, setIsPendingSubmitting] = useState(false)
 
   // Form data
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null)
@@ -70,6 +70,87 @@ export default function DepositPage() {
     router.push("/login")
     return null
   }
+
+  // ── Check pending transaction on mount ───────────────────────────────────
+  useEffect(() => {
+    const checkPendingTransaction = async () => {
+      try {
+        const lastTrans = await transactionApi.getLastTransaction()
+        if (lastTrans && lastTrans.status === "pending" && lastTrans.type_trans === "deposit") {
+          setPendingTransaction(lastTrans)
+          setIsPendingDialogOpen(true)
+        }
+      } catch (error: any) {
+        // 404 = aucune transaction, c'est normal
+        if (error?.response?.status !== 404) {
+          console.error("Erreur vérification transaction en attente:", error)
+        }
+      } finally {
+        setIsPendingCheckDone(true)
+      }
+    }
+    checkPendingTransaction()
+  }, [])
+
+  // ── Handlers pending dialog ───────────────────────────────────────────────
+
+  // "Nouveau dépôt" → annule l'ancienne, ferme le dialog, reste sur step 1
+  const handleCancelPendingAndContinue = async (reference: string) => {
+    try {
+      await transactionApi.cancelTransaction(reference)
+      toast.success("Ancienne transaction annulée")
+      setIsPendingDialogOpen(false)
+      setPendingTransaction(null)
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.detail ||
+        "Erreur lors de l'annulation de la transaction"
+      toast.error(errorMessage)
+      throw error
+    }
+  }
+
+  // "Finaliser" → finalise l'ancienne, enchaîne le flux post-finalisation
+  const handleFinalizePending = async (reference: string) => {
+    try {
+      const finalizedData = await transactionApi.finalizeTransaction(reference)
+      setIsPendingDialogOpen(false)
+      setPendingTransaction(null)
+      await handlePostFinalization(finalizedData)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // ── Flux partagé post-finalisation / post-création ────────────────────────
+  const handlePostFinalization = async (data: any) => {
+    if (data?.transaction_link) {
+      setTransactionLink(data.transaction_link)
+      setIsTransactionLinkModalOpen(true)
+      return
+    }
+
+    // Orange
+    if (
+      selectedNetwork?.name?.toLowerCase() === "orange" &&
+      selectedNetwork.deposit_api?.toLowerCase() === "connect"
+    ) {
+      if (selectedNetwork.payment_by_link === false) {
+        const handled = await handleOrangeUssdFlow(amount)
+        if (!handled) router.push("/dashboard")
+      } else {
+        router.push("/dashboard")
+      }
+      return
+    }
+
+    // Moov ou autre
+    const handled = await handleMoovUssdFlow(amount)
+    if (!handled) router.push("/dashboard")
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -106,29 +187,20 @@ export default function DepositPage() {
     if (!selectedNetwork || selectedNetwork.name?.toLowerCase() !== "moov") {
       return false
     }
-
-    // Check if deposit_api is "connect"
     if (!selectedNetwork.deposit_api || selectedNetwork.deposit_api.toLowerCase() !== "connect") {
       return false
     }
-
     try {
       const settings = await settingsApi.get()
       const moovPhone = settings.moov_merchant_phone || settings.moov_marchand_phone
-
-      if (!moovPhone) {
-        return false
-      }
+      if (!moovPhone) return false
 
       const ussdAmount = Math.max(1, Math.floor(amountValue * 0.99))
       const ussdCode = `*155*2*1*${moovPhone}*${ussdAmount}#`
-
       setMoovMerchantPhone(moovPhone)
       setMoovUssdCode(ussdCode)
       setIsMoovUssdModalOpen(true)
-
       attemptDialerRedirect(ussdCode)
-
       return true
     } catch (error) {
       console.error("Erreur lors de la récupération des paramètres Moov:", error)
@@ -140,29 +212,20 @@ export default function DepositPage() {
     if (!selectedNetwork || selectedNetwork.name?.toLowerCase() !== "orange") {
       return false
     }
-
-    // Check if deposit_api is "connect"
     if (!selectedNetwork.deposit_api || selectedNetwork.deposit_api.toLowerCase() !== "connect") {
       return false
     }
-
     try {
       const settings = await settingsApi.get()
-      const orangePhone = settings.moov_merchant_phone || settings.moov_marchand_phone
-
-      if (!orangePhone) {
-        return false
-      }
+      const orangePhone = settings.orange_merchant_phone || settings.orange_marchand_phone
+      if (!orangePhone) return false
 
       const ussdAmount = Math.max(1, Math.floor(amountValue))
       const ussdCode = `*144*2*1*${orangePhone}*${ussdAmount}#`
-
       setOrangeMerchantPhone(orangePhone)
       setOrangeUssdCode(ussdCode)
       setIsOrangeUssdModalOpen(true)
-
       attemptDialerRedirect(ussdCode)
-
       return true
     } catch (error) {
       console.error("Erreur lors de la récupération des paramètres Orange:", error)
@@ -172,31 +235,27 @@ export default function DepositPage() {
 
   const handleCopyUssdCode = async () => {
     if (!moovUssdCode) return
-
     try {
       await navigator.clipboard.writeText(moovUssdCode)
       toast.success("Code USSD copié")
     } catch (error) {
-      console.error("Impossible de copier le code USSD:", error)
       toast.error("Copie impossible, copiez manuellement le code.")
     }
   }
 
   const handleCopyOrangeUssdCode = async () => {
     if (!orangeUssdCode) return
-
     try {
       await navigator.clipboard.writeText(orangeUssdCode)
       toast.success("Code USSD copié")
     } catch (error) {
-      console.error("Impossible de copier le code USSD:", error)
       toast.error("Copie impossible, copiez manuellement le code.")
     }
   }
 
+  // ── Moov modal close → toujours rediriger vers dashboard ─────────────────
   const handleMoovModalClose = (open: boolean) => {
     if (!open) {
-      // Only navigate to dashboard when user closes the modal
       setIsMoovUssdModalOpen(false)
       router.push("/dashboard")
     } else {
@@ -204,9 +263,9 @@ export default function DepositPage() {
     }
   }
 
+  // ── Orange modal close → toujours rediriger vers dashboard ───────────────
   const handleOrangeModalClose = (open: boolean) => {
     if (!open) {
-      // Only navigate to dashboard when user closes the modal
       setIsOrangeUssdModalOpen(false)
       router.push("/dashboard")
     } else {
@@ -214,7 +273,9 @@ export default function DepositPage() {
     }
   }
 
-  /*const handleConfirmTransaction = async () => {
+  // ── Confirmation de la nouvelle transaction ───────────────────────────────
+  // Plus de dialog de résumé post-création : on va directement au flux post-finalisation
+  const handleConfirmTransaction = async () => {
     if (!selectedPlatform || !selectedBetId || !selectedNetwork || !selectedPhone) {
       toast.error("Données manquantes pour la transaction")
       return
@@ -228,40 +289,13 @@ export default function DepositPage() {
         app: selectedPlatform.id,
         user_app_id: selectedBetId.user_app_id,
         network: selectedNetwork.id,
-        source: "web"
+        source: "web",
       })
 
+      setIsConfirmationOpen(false)
       toast.success("Dépôt initié avec succès!")
-
-      // Check if transaction_link exists in the response
-      if (response.transaction_link) {
-        setTransactionLink(response.transaction_link)
-        setIsTransactionLinkModalOpen(true)
-        setIsConfirmationOpen(false)
-      } else {
-        // Handle Orange network logic
-        if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-          selectedNetwork.deposit_api?.toLowerCase() === "connect") {
-          if (selectedNetwork.payment_by_link === false) {
-            // Use USSD code for Orange when payment_by_link is false
-            const handled = await handleOrangeUssdFlow(amount)
-            if (!handled) {
-              router.push("/dashboard")
-            }
-          } else {
-            // payment_by_link is true, but no transaction_link in response, redirect to dashboard
-            router.push("/dashboard")
-          }
-        } else {
-          // Handle Moov network or other networks
-          const handled = await handleMoovUssdFlow(amount)
-          if (!handled) {
-            router.push("/dashboard")
-          }
-        }
-      }
+      await handlePostFinalization(response)
     } catch (error: any) {
-      // Check for rate limit error (error_time_message)
       const timeErrorMessage = extractTimeErrorMessage(error)
       if (timeErrorMessage) {
         toast.error(timeErrorMessage)
@@ -271,160 +305,28 @@ export default function DepositPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }*/
-
-    // handleConfirmTransaction function with updated logic (by didier)
-    const handleConfirmTransaction = async () => {
-        if (!selectedPlatform || !selectedBetId || !selectedNetwork || !selectedPhone) {
-            toast.error("Données manquantes pour la transaction")
-            return
-        }
-
-        setIsSubmitting(true)
-        try {
-            const response = await transactionApi.createDeposit({
-            amount,
-            phone_number: selectedPhone.phone,
-            app: selectedPlatform.id,
-            user_app_id: selectedBetId.user_app_id,
-            network: selectedNetwork.id,
-            source: "web"
-            })
-
-            // Stocker la réponse initiale
-            setInitialDepositResponse(response)
-
-            // Fermer la confirmation dialog
-            setIsConfirmationOpen(false)
-
-            // Récupérer la dernière transaction
-            try {
-            const lastTrans = await transactionApi.getLastTransaction()
-            setLastTransaction(lastTrans)
-            setIsTransactionSummaryOpen(true)
-            } catch (error) {
-            console.error("Erreur lors de la récupération de la dernière transaction:", error)
-            // Continuer le flux normal même si on ne peut pas récupérer la transaction
-            if (response.transaction_link) {
-                setTransactionLink(response.transaction_link)
-                setIsTransactionLinkModalOpen(true)
-            } else {
-                if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-                selectedNetwork.deposit_api?.toLowerCase() === "connect") {
-                if (selectedNetwork.payment_by_link === false) {
-                    const handled = await handleOrangeUssdFlow(amount)
-                    if (!handled) {
-                    router.push("/dashboard")
-                    }
-                } else {
-                    router.push("/dashboard")
-                }
-                } else {
-                const handled = await handleMoovUssdFlow(amount)
-                if (!handled) {
-                    router.push("/dashboard")
-                }
-                }
-            }
-            }
-        } catch (error: any) {
-            const timeErrorMessage = extractTimeErrorMessage(error)
-            if (timeErrorMessage) {
-            toast.error(timeErrorMessage)
-            } else {
-            toast.error("Erreur lors de la création du dépôt")
-            }
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+  }
 
   const handleContinueTransaction = async () => {
     if (transactionLink) {
       window.open(transactionLink, "_blank", "noopener,noreferrer")
       setIsTransactionLinkModalOpen(false)
       setTransactionLink(null)
-
-      const handled = await handleMoovUssdFlow(amount)
-      if (!handled) {
-        router.push("/dashboard")
-      }
-    }
-  }
-
-
-
-  // handleCancelTransaction function
-  const handleCancelTransaction = async (reference: string) => {
-    await transactionApi.cancelTransaction(reference)
-    // Après annulation, rediriger vers le dashboard
-    setTimeout(() => {
       router.push("/dashboard")
-    }, 1000)
-  }
-
-  // handleFinalizeTransaction function
-  const handleFinalizeTransaction = async (reference: string) => {
-  try {
-    // Appeler l'API de finalisation et récupérer la nouvelle transaction
-    const finalizedTransaction = await transactionApi.finalizeTransaction(reference)
-    
-    //console.log("Transaction finalisée:", finalizedTransaction)
-    
-    // Fermer le dialog de summary
-    setIsTransactionSummaryOpen(false)
-    
-    //Utiliser la transaction finalisée (qui a une nouvelle référence)
-    // Suivre l'ancienne logique avec cette nouvelle transaction
-    if (finalizedTransaction.transaction_link) {
-      setTransactionLink(finalizedTransaction.transaction_link)
-      setIsTransactionLinkModalOpen(true)
-    } else {
-      // Handle Orange network logic
-      if (selectedNetwork?.name?.toLowerCase() === "orange" &&
-        selectedNetwork.deposit_api?.toLowerCase() === "connect") {
-        if (selectedNetwork.payment_by_link === false) {
-          // Use USSD code for Orange when payment_by_link is false
-          const handled = await handleOrangeUssdFlow(amount)
-          if (!handled) {
-            router.push("/dashboard")
-          }
-        } else {
-          // payment_by_link is true, but no transaction_link in response, redirect to dashboard
-          router.push("/dashboard")
-        }
-      } else {
-        // Handle Moov network or other networks
-        const handled = await handleMoovUssdFlow(amount)
-        if (!handled) {
-          router.push("/dashboard")
-        }
-      }
     }
-  } catch (error) {
-    // L'erreur sera gérée par le TransactionSummaryDialog
-    throw error
   }
-}
-
-
 
   const isStepValid = () => {
     switch (currentStep) {
-      case 1:
-        return selectedPlatform !== null
-      case 2:
-        return selectedBetId !== null
-      case 3:
-        return selectedNetwork !== null
-      case 4:
-        return selectedPhone !== null
+      case 1: return selectedPlatform !== null
+      case 2: return selectedBetId !== null
+      case 3: return selectedNetwork !== null
+      case 4: return selectedPhone !== null
       case 5:
         return amount > 0 && selectedPlatform &&
           amount >= selectedPlatform.minimun_deposit &&
           amount <= selectedPlatform.max_deposit
-      default:
-        return false
+      default: return false
     }
   }
 
@@ -472,7 +374,7 @@ export default function DepositPage() {
             amount={amount}
             setAmount={setAmount}
             withdriwalCode=""
-            setWithdriwalCode={() => { }}
+            setWithdriwalCode={() => {}}
             selectedPlatform={selectedPlatform}
             selectedBetId={selectedBetId}
             selectedNetwork={selectedNetwork}
@@ -484,6 +386,18 @@ export default function DepositPage() {
       default:
         return null
     }
+  }
+
+  // ── Spinner pendant le check initial ─────────────────────────────────────
+  if (!isPendingCheckDone) {
+    return (
+      <div className="max-w-4xl mx-auto w-full px-3 sm:px-4 flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm">Vérification en cours...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -506,7 +420,7 @@ export default function DepositPage() {
           {renderCurrentStep()}
         </div>
 
-        {/* Navigation - Show Previous button for steps 2-5 */}
+        {/* Navigation */}
         {currentStep > 1 && currentStep <= 5 && (
           <div className="flex justify-start pt-4 sm:pt-6">
             <Button
@@ -587,7 +501,6 @@ export default function DepositPage() {
                         <Input value={moovUssdCode} readOnly className="font-mono text-sm" />
                         <Button variant="outline" size="icon" onClick={handleCopyUssdCode}>
                           <Copy className="h-4 w-4" />
-                          <span className="sr-only">Copier le code</span>
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -603,6 +516,7 @@ export default function DepositPage() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
+              {/* ✅ "J'ai compris" redirige vers dashboard */}
               <Button onClick={() => handleMoovModalClose(false)}>J&apos;ai compris</Button>
             </DialogFooter>
           </DialogContent>
@@ -630,7 +544,6 @@ export default function DepositPage() {
                         <Input value={orangeUssdCode} readOnly className="font-mono text-sm" />
                         <Button variant="outline" size="icon" onClick={handleCopyOrangeUssdCode}>
                           <Copy className="h-4 w-4" />
-                          <span className="sr-only">Copier le code</span>
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -646,26 +559,23 @@ export default function DepositPage() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
+              {/* ✅ "J'ai compris" redirige vers dashboard */}
               <Button onClick={() => handleOrangeModalClose(false)}>J&apos;ai compris</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        {/* Transaction summary dialog */}
+
+        {/* ── Pending transaction dialog (au chargement) ── */}
         <TransactionSummaryDialog
-          isOpen={isTransactionSummaryOpen}
-          onClose={() => {
-            setIsTransactionSummaryOpen(false)
-            //router.push("/dashboard")
-          }}
-          transaction={lastTransaction}
-          onCancel={handleCancelTransaction}
-          onFinalize={handleFinalizeTransaction}
-          isLoading={isSubmitting}
+          isOpen={isPendingDialogOpen}
+          onClose={() => {}} // bloqué — l'utilisateur doit choisir
+          transaction={pendingTransaction}
+          onCancel={handleCancelPendingAndContinue}
+          onFinalize={handleFinalizePending}
+          isLoading={isPendingSubmitting}
+          mode="pending"
         />
-
       </div>
-
-      
     </div>
   )
 }

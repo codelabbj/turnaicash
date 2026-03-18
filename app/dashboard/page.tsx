@@ -133,14 +133,16 @@ export default function DashboardPage() {
 
   const getStatusBadge = (status: Transaction["status"]) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pending: { variant: "secondary", label: "En attente" },
-      accept: { variant: "default", label: "Accepté" },
-      init_payment: { variant: "secondary", label: "En attente" },
-      error: { variant: "destructive", label: "Erreur" },
-      reject: { variant: "destructive", label: "Rejeté" },
-      timeout: { variant: "outline", label: "Expiré" },
+      pending:      { variant: "secondary",    label: "En attente" },
+      accept:       { variant: "default",      label: "Accepté" },
+      init_payment: { variant: "secondary",    label: "En attente" },
+      error:        { variant: "destructive",  label: "Erreur" },
+      reject:       { variant: "destructive",  label: "Rejeté" },
+      timeout:      { variant: "outline",      label: "Expiré" },
+      cancel:       { variant: "outline",      label: "Annulé" },   // ✅ ajout
+      annuler:      { variant: "outline",      label: "Annulé" },   // ✅ ajout (API retourne parfois "annuler")
     }
-    
+  
     const config = statusConfig[status] || { variant: "outline" as const, label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
