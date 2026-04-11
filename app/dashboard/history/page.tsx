@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ import { fr } from "date-fns/locale"
 import { formatPhoneNumberForDisplay } from "@/lib/utils"
 
 export default function TransactionHistoryPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -209,7 +211,14 @@ export default function TransactionHistoryPage() {
             ) : (
               <div className="space-y-2 sm:space-y-3">
                 {transactions.map((transaction) => (
-                  <Card key={transaction.id} className="hover:shadow-md transition-shadow">
+                  <Card 
+                    key={transaction.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                    onClick={() => {
+                      sessionStorage.setItem('cached_transaction', JSON.stringify(transaction))
+                      router.push(`/dashboard/history/detail?id=${transaction.id}`)
+                    }}
+                  >
                     <CardContent className="p-3 sm:p-4 lg:p-6">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                         <div className="flex-1 min-w-0 space-y-2">

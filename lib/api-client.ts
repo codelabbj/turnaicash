@@ -270,6 +270,11 @@ export const transactionApi = {
     })
     return data
   },
+
+  getDetail: async (id: string) => {
+    const { data } = await api.get<Transaction>(`/mobcash/transaction/${id}`)
+    return data
+  },
 }
 
 export const notificationApi = {

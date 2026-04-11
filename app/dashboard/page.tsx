@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/carousel"
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
@@ -358,7 +360,14 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-2 sm:space-y-3">
             {recentTransactions.map((transaction) => (
-              <Card key={transaction.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={transaction.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                onClick={() => {
+                  sessionStorage.setItem('cached_transaction', JSON.stringify(transaction))
+                  router.push(`/dashboard/history/detail?id=${transaction.id}`)
+                }}
+              >
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
