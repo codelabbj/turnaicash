@@ -1,9 +1,9 @@
 import ClientTransactionDetailPage from "./client-page"
 
 export function generateStaticParams() {
-  // In a static export for a mobile app, we return an empty array 
-  // to tell Next.js that the paths will be handled at runtime/client-side.
-  return []
+  // Static export requires at least one entry. The actual transaction ID is
+  // read at runtime from the URL on the client, so this placeholder is never used.
+  return [{ id: "placeholder" }]
 }
 
 export default function Page() {
