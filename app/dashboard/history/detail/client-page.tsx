@@ -2,26 +2,12 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import {
-  ArrowLeft,
-  Copy,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Smartphone,
-  Phone,
-  CreditCard,
-  Calendar,
-  FileText,
-  User as UserIcon,
-} from "lucide-react"
+import { ArrowLeft, Copy, RefreshCw, CheckCircle2, AlertCircle, Smartphone, Phone, CreditCard, Calendar, FileText, Contact } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { transactionApi } from "@/lib/api-client"
 import type { Transaction } from "@/lib/types"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -118,17 +104,23 @@ function TransactionDetailContent() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const getStatusIcon = (status: string) => {
-    const s = status.toLowerCase()
-    switch (s) {
+  const getStatusIcon = (status: string | undefined) => {
+    switch (status?.toLowerCase()) {
+      case "success":
       case "completed":
       case "accept":
       case "approve":
-      case "success":
         return (
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-3 shadow-sm">
-            <CheckCircle2 size={32} className="text-white" />
-          </div>
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-3 shadow-sm">
+                <CheckCircle2 size={32} className="text-white" />
+            </div>
+        )
+      case "pending":
+      case "init_payment":
+        return (
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                <RefreshCw size={32} className="text-gray-400 animate-[spin_3s_linear_infinite]" />
+            </div>
         )
       case "failed":
       case "error":
@@ -235,149 +227,199 @@ function TransactionDetailContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
+    <div className="max-w-2xl mx-auto pb-12 px-2 flex flex-col">
+      <div className="flex items-center gap-2 mb-4 pt-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <ArrowLeft className="h-6 w-6" />
         </Button>
-        <h1 className="text-xl font-bold">Détails de la transaction</h1>
+        <h1 className="text-xl font-bold flex-1 text-center pr-10">Détails du {transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"}</h1>
       </div>
 
-      <div className="flex flex-col items-center py-4">
-        {getStatusIcon(transaction.status)}
-        <div className="flex items-center gap-2 mb-1">
+      <div className="w-full flex flex-col items-center">
+        <div className="mt-0.5 relative">
+          {getStatusIcon(transaction.status)}
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-0">
           <h2 className={`text-lg font-bold ${getStatusColor(transaction.status)}`}>
             {getStatusText(transaction.status)}
           </h2>
           {timeLeft !== null && timeLeft > 0 && (
-            <Badge variant="outline" className="flex items-center gap-1 text-amber-600 border-amber-200">
-              <Clock className="w-3 h-3" />
-              {formatTime(timeLeft)}
-            </Badge>
+             <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-mono text-sm bg-amber-50 dark:bg-amber-900/20 px-2.5 py-0.5 rounded-full">
+               <Clock className="w-3.5 h-3.5" />
+               {formatTime(timeLeft)}
+             </div>
+          )}
+          {timeLeft === 0 && transaction.status?.toLowerCase() === 'pending' && (
+             <span className="text-xs font-bold text-red-500">Expiré</span>
           )}
         </div>
-        <p className="text-3xl font-bold mt-2">
-          {transaction.amount.toLocaleString("fr-FR", {
-            style: "currency",
-            currency: "XOF",
-            minimumFractionDigits: 0,
-          })}
+        <p className="text-gray-400 text-xs mb-2">
+           {transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"} {transaction.status?.toLowerCase() === "pending" ? "en cours" : ""}
         </p>
-      </div>
-
-      {transaction.status?.toLowerCase() === "pending" && (transaction.transaction_link || transaction.ussd_code) && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 space-y-4">
-            {transaction.transaction_link ? (
-              <Button className="w-full h-12 text-lg font-bold" asChild>
-                <a href={transaction.transaction_link} target="_blank" rel="noopener noreferrer">
-                  Continuer le paiement
-                </a>
-              </Button>
-            ) : transaction.ussd_code ? (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Code USSD à composer
-                </p>
-                <div className="flex items-center justify-between gap-4 bg-background p-3 rounded-lg border">
-                  <span className="font-mono font-bold text-xl tracking-widest">{transaction.ussd_code}</span>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(transaction.ussd_code!)}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copier
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      )}
-
-      {transaction.error_message && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex gap-3 text-destructive">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm">{transaction.error_message}</p>
+        <div className="text-2xl font-bold dark:text-white text-slate-900 mb-3">
+            XOF {transaction.amount.toLocaleString()}
         </div>
-      )}
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            <div className="p-4 flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Type</span>
-              <Badge variant={transaction.type_trans === "deposit" ? "default" : "secondary"}>
-                {transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"}
-              </Badge>
+        {/* Message Box */}
+        <div className="w-full bg-[#EBF5FF] border-[#D1E9FF] dark:bg-blue-900/10 dark:border-blue-900/30 rounded-xl p-2 mb-3 border">
+            <div className="flex items-center gap-1.5 mb-0.5">
+                <AlertCircle size={14} className="text-blue-400" />
+                <span className="font-bold text-[#1E3A8A] dark:text-blue-300 text-xs">Message</span>
             </div>
+            <p className="text-[#1E3A8A] dark:text-blue-200 text-xs leading-snug">
+                {transaction.error_message || (transaction.status?.toLowerCase() === "pending" ? `${transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"} en cours` : "Paiement effectué avec succès.")}
+            </p>
+        </div>
 
-            <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <Smartphone className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Application</p>
-                <p className="font-medium">{transaction.app || "N/A"}</p>
-              </div>
-            </div>
-
-            <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Numéro</p>
-                <p className="font-medium">{formatPhoneNumberForDisplay(transaction.phone_number)}</p>
-              </div>
-            </div>
-
-            <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Référence</p>
-                <div className="flex items-center justify-between">
-                  <p className="font-medium truncate mr-2">{transaction.reference}</p>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(transaction.reference)}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
+        {/* USSD Box */}
+        {transaction.status?.toLowerCase() === "pending" && transaction.ussd_code && (
+            <div className="w-full bg-[#EBF5FF] border-[#D1E9FF] dark:bg-blue-900/10 dark:border-blue-900/30 rounded-xl p-2 mb-3 border">
+                <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="flex items-center gap-1.5">
+                        <Smartphone size={14} className="text-blue-400" />
+                        <span className="font-bold text-[#1E3A8A] dark:text-blue-300 text-xs">Paiement USSD</span>
+                    </div>
                 </div>
-              </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 bg-white/50 dark:bg-black/20 p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-900/30">
+                    <span className="font-mono text-base sm:text-lg font-bold tracking-widest dark:text-white text-slate-900 break-all">
+                        {transaction.ussd_code}
+                    </span>
+                    <div className="flex gap-1.5 shrink-0">
+                        <button
+                            onClick={() => window.location.href = `tel:${encodeURIComponent(transaction.ussd_code!)}`}
+                            className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-blue-600 text-white rounded-md text-[11px] sm:text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                        >
+                            <Phone size={12} fill="white" />
+                            Appeler
+                        </button>
+                        <button
+                            onClick={() => copyToClipboard(transaction.ussd_code!)}
+                            className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-md border text-[11px] sm:text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 border-blue-100 bg-white text-blue-600 dark:border-slate-800 dark:bg-slate-800 dark:text-blue-400"
+                        >
+                            <Copy size={12} />
+                            Copier
+                        </button>
+                    </div>
+                </div>
             </div>
+        )}
 
-            <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Date</p>
-                <p className="font-medium">{formatDate(transaction.created_at)}</p>
-              </div>
+        {/* Transaction Link */}
+        {transaction.status?.toLowerCase() === "pending" && transaction.transaction_link && (
+            <div className="w-full mb-4">
+                <a
+                    href={transaction.transaction_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-3"
+                >
+                    Continuer le paiement
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
             </div>
+        )}
 
-            <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <UserIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">{transaction.app || "App"} ID</p>
-                <p className="font-medium">{transaction.user_app_id || "N/A"}</p>
-              </div>
+        {/* Details Card */}
+        <div className="w-full bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-sm mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+                Informations du {transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"}
+            </h3>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                    <span className="text-gray-400 text-xs">Type</span>
+                    <span className="font-bold uppercase text-xs dark:text-white text-slate-900">{transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"}</span>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                            <CreditCard size={16} />
+                        </div>
+                    </div>
+                    <div className="flex flex-col flex-1 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                        <span className="text-gray-400 text-[10px]">Application</span>
+                        <span className="font-semibold text-sm dark:text-white text-slate-900">{transaction.app || "N/A"}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        <Phone className="text-gray-400" size={16} />
+                    </div>
+                    <div className="flex flex-col flex-1 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                        <span className="text-gray-400 text-[10px]">Numéro</span>
+                        <span className="font-semibold text-sm dark:text-white text-slate-900">{formatPhoneNumberForDisplay(transaction.phone_number)}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 text-gray-400">
+                        <span className="font-bold text-lg">$</span>
+                    </div>
+                    <div className="flex flex-col flex-1 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                        <span className="text-gray-400 text-[10px]">Montant</span>
+                        <span className="font-semibold text-sm dark:text-white text-slate-900">XOF {transaction.amount.toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        <FileText className="text-gray-400" size={16} />
+                    </div>
+                    <div className="flex flex-col flex-1 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                        <span className="text-gray-400 text-[10px]">Référence</span>
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm dark:text-white text-slate-900 truncate max-w-[180px]">{transaction.reference}</span>
+                            <button onClick={() => copyToClipboard(transaction.reference)} className="text-blue-400 hover:text-blue-500">
+                                <Copy size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        <Calendar className="text-gray-400" size={16} />
+                    </div>
+                    <div className="flex flex-col flex-1 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                        <span className="text-gray-400 text-[10px]">Date</span>
+                        <span className="font-semibold text-sm dark:text-white text-slate-900">
+                            {formatDate(transaction.created_at)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        <Contact className="text-gray-400" size={16} />
+                    </div>
+                    <div className="flex flex-col flex-1">
+                        <span className="text-gray-400 text-[10px]">{transaction.app || "App"} ID</span>
+                        <span className="font-semibold text-sm dark:text-white text-slate-900">{transaction.user_app_id || "N/A"}</span>
+                    </div>
+                </div>
+
             </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="flex flex-col gap-3 pb-8">
-        <Button 
-          onClick={contactSupport}
-          className="w-full h-12 bg-red-100 hover:bg-red-200 text-red-600 border-none font-bold"
-          variant="outline"
+        <button
+            onClick={contactSupport}
+            className="w-full py-3 bg-[#ffdedb] hover:bg-[#ffcfcc] text-[#ff6b62] rounded-xl text-base font-bold transition-colors shadow-sm mt-3"
         >
-          Contacter le support
-        </Button>
-        <Button variant="outline" className="w-full h-12 font-bold" onClick={() => router.push("/dashboard/history")}>
-          Retour à l'historique
-        </Button>
+            Contacter le support
+        </button>
+
+        <button
+            onClick={() => router.push("/dashboard/history")}
+            className="w-full py-3 bg-[#ffdedb] hover:bg-[#ffcfcc] text-[#ff6b62] rounded-xl text-base font-bold transition-colors shadow-sm mt-3 mb-8"
+        >
+            Retour à l'historique
+        </button>
+
       </div>
     </div>
   )

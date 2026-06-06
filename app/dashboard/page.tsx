@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import React from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,20 +40,44 @@ export default function DashboardPage() {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
   const [isCarouselPaused, setIsCarouselPaused] = useState(false)
   const [settings, setSettings] = useState<Settings | null>(null)
+  
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
 
-  const fetchRecentTransactions = async () => {
+  const fetchRecentTransactions = async (pageNum = 1) => {
     try {
-      setIsLoadingTransactions(true)
+      if (pageNum === 1) setIsLoadingTransactions(true)
+      else setIsLoadingMore(true)
+      
       const data = await transactionApi.getHistory({
-        page: 1,
-        page_size: 5, // Get only the 5 most recent transactions
+        page: pageNum,
+        page_size: 10,
       })
-      setRecentTransactions(data.results)
+      
+      if (pageNum === 1) {
+        setRecentTransactions(data.results)
+      } else {
+        setRecentTransactions(prev => [...prev, ...data.results])
+      }
+      setHasMore(!!data.next)
     } catch (error) {
       console.error("Error fetching recent transactions:", error)
       toast.error("Erreur lors du chargement des transactions récentes")
     } finally {
       setIsLoadingTransactions(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current || isLoadingTransactions || isLoadingMore || !hasMore) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchRecentTransactions(nextPage)
     }
   }
 
@@ -103,7 +128,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleFocus = () => {
       if (user) {
-        fetchRecentTransactions()
+        setPage(1)
+        fetchRecentTransactions(1)
       }
     }
     window.addEventListener('focus', handleFocus)
@@ -326,7 +352,10 @@ export default function DashboardPage() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={fetchRecentTransactions}
+              onClick={() => {
+                setPage(1)
+                fetchRecentTransactions(1)
+              }}
               disabled={isLoadingTransactions}
               className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3"
             >
@@ -358,7 +387,11 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2 sm:space-y-3">
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="space-y-2 sm:space-y-3 h-[320px] overflow-y-auto pr-1 pb-4"
+          >
             {recentTransactions.map((transaction) => (
               <Card 
                 key={transaction.id} 
@@ -411,6 +444,11 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ))}
+            {isLoadingMore && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
           </div>
         )}
       </div>
