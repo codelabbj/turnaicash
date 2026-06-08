@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Copy, RefreshCw, CheckCircle2, AlertCircle, Smartphone, Phone, CreditCard, Calendar, FileText, Contact } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { transactionApi } from "@/lib/api-client"
-import type { Transaction } from "@/lib/types"
+import type { Transaction, Settings } from "@/lib/types"
+import { settingsApi } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 
 import { toast } from "react-hot-toast"
@@ -19,6 +20,7 @@ function TransactionDetailContent() {
   const router = useRouter()
   const { user } = useAuth()
   const [transaction, setTransaction] = useState<Transaction | null>(null)
+  const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -60,6 +62,17 @@ function TransactionDetailContent() {
   }, [id])
 
   useEffect(() => {
+    // Fetch settings for dynamic theming and WhatsApp number
+    async function fetchSettings() {
+      try {
+        const data = await settingsApi.get()
+        setSettings(data)
+      } catch (e) {
+        console.error('Failed to fetch settings', e)
+      }
+    }
+    fetchSettings()
+
     fetchTransactionDetails()
   }, [fetchTransactionDetails])
 
@@ -218,12 +231,13 @@ function TransactionDetailContent() {
     const appName = transaction.app || "App"
     const appId = transaction.user_app_id || "N/A"
     const transType = transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"
+    const whatsappNumber = settings?.whatsapp_phone || "0594811767"
 
     const message = `Bonjour moi c'est ${firstName} ${lastName}, j'ai besoin d'aide concernant mon ${transType}.\nDate: ${formatDate(
       transaction.created_at
     )}\nRéférence: ${ref}\nMontant: XOF ${amount}\nRéseau: ${networkName}\nTéléphone: ${phone}\n*${appName} ID:* ${appId}`
 
-    window.open(`https://wa.me/22553445327?text=${encodeURIComponent(message)}`, "_blank")
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank")
   }
 
   return (
@@ -408,14 +422,14 @@ function TransactionDetailContent() {
 
         <button
             onClick={contactSupport}
-            className="w-full py-3 bg-[#ffdedb] hover:bg-[#ffcfcc] text-[#ff6b62] rounded-xl text-base font-bold transition-colors shadow-sm mt-3"
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-base font-bold transition-colors shadow-sm mt-3"
         >
             Contacter le support
         </button>
 
         <button
             onClick={() => router.push("/dashboard/history")}
-            className="w-full py-3 bg-[#ffdedb] hover:bg-[#ffcfcc] text-[#ff6b62] rounded-xl text-base font-bold transition-colors shadow-sm mt-3 mb-8"
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-base font-bold transition-colors shadow-sm mt-3 mb-8"
         >
             Retour à l'historique
         </button>
