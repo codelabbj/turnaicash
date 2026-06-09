@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { authApi, settingsApi } from "@/lib/api-client"
 import { toast } from "react-hot-toast"
 import { Loader2, Eye, EyeOff } from "lucide-react"
+import { GoogleButton } from "@/components/google-button"
 
 const baseSignupSchema = z.object({
   first_name: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
@@ -241,6 +242,9 @@ export default function SignupPage() {
               "Créer mon compte"
             )}
           </Button>
+
+          {/* Bouton Google */}
+          <GoogleButton mode="register" />
         </form>
       </CardContent>
       <CardFooter className="flex flex-col space-y-2 px-4 sm:px-6 pb-6 sm:pb-6">

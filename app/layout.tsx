@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast"
 import { Suspense } from "react"
 import { Footer } from "@/components/footer"
 import { NotificationManager } from "@/components/notification-manager"
+import { GoogleOAuthProvider } from "@react-oauth/google"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -28,27 +29,29 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="min-h-screen flex flex-col">
-            <div className="flex-1 flex flex-col">
-              <AuthProvider>
-                {/* <ErudaLoader /> */}
-                <Suspense fallback={null}>
-                  {children}
-                  <NotificationManager />
-                </Suspense>
-                <Toaster position="top-right" />
-                {/* <DevTools /> */}
-              </AuthProvider>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div className="min-h-screen flex flex-col">
+              <div className="flex-1 flex flex-col">
+                <AuthProvider>
+                  {/* <ErudaLoader /> */}
+                  <Suspense fallback={null}>
+                    {children}
+                    <NotificationManager />
+                  </Suspense>
+                  <Toaster position="top-right" />
+                  {/* <DevTools /> */}
+                </AuthProvider>
+              </div>
+              <Footer />
             </div>
-            <Footer />
-          </div>
-        </ThemeProvider>
+          </ThemeProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   )

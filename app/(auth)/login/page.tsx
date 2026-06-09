@@ -16,6 +16,7 @@ import { authApi } from "@/lib/api-client"
 import { toast } from "react-hot-toast"
 import { Loader2, Eye, EyeOff, Download, ArrowLeft } from "lucide-react"
 import { setupNotifications } from "@/lib/fcm-helper"
+import { GoogleButton } from "@/components/google-button"
 
 const loginSchema = z.object({
   email_or_phone: z.string().min(1, "Email ou téléphone requis"),
@@ -50,6 +51,8 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
+
+  // Google Sign-In handler — déplacé dans GoogleButton component
 
   // Load remembered credentials on mount
   useEffect(() => {
@@ -483,8 +486,10 @@ export default function LoginPage() {
                   "Se connecter"
                 )}
               </Button>
-            </form>
-          )}
+
+              {/* Séparateur + Bouton Google */}
+              <GoogleButton mode="login" />
+            </form>          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-2 px-4 sm:px-6 pb-6 sm:pb-6">
           <div className="text-xs sm:text-sm text-muted-foreground text-center">
