@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, User, Save, Eye, EyeOff, Lock } from "lucide-react"
+import { Loader2, User as UserIcon, Save, Eye, EyeOff, Lock } from "lucide-react"
 import { authApi } from "@/lib/api-client"
 import type { User } from "@/lib/types"
 import { toast } from "react-hot-toast"
@@ -156,7 +156,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <User className="h-6 w-6 sm:h-8 sm:w-8" />
+          <UserIcon className="h-6 w-6 sm:h-8 sm:w-8" />
           Mon profil
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { useGoogleLogin } from "@react-oauth/google"
 import { GoogleLogin } from "@react-oauth/google"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "react-hot-toast"
@@ -17,6 +16,28 @@ export function GoogleButton({ mode = "login" }: GoogleButtonProps) {
   const { login } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState<number>(320)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    // Initial calculation
+    const parentWidth = containerRef.current.getBoundingClientRect().width
+    if (parentWidth) {
+      setWidth(Math.min(400, Math.max(200, Math.floor(parentWidth))))
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const w = Math.min(400, Math.max(200, Math.floor(entry.contentRect.width)))
+        setWidth(w)
+      }
+    })
+    
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   const handleCredential = async (credential: string) => {
     setIsLoading(true)
@@ -46,19 +67,22 @@ export function GoogleButton({ mode = "login" }: GoogleButtonProps) {
       </div>
 
       {/* Bouton Google style natif */}
-      <GoogleLogin
-        onSuccess={(res) => {
-          if (res.credential) handleCredential(res.credential)
-        }}
-        onError={() => toast.error("Erreur lors de la connexion avec Google")}
-        text={mode === "register" ? "signup_with" : "continue_with"}
-        shape="rectangular"
-        theme="outline"
-        size="large"
-        locale="fr"
-        width="400"
-        useOneTap={false}
-      />
+      <div ref={containerRef} className="w-full flex justify-center">
+        <GoogleLogin
+          onSuccess={(res) => {
+            if (res.credential) handleCredential(res.credential)
+          }}
+          onError={() => {
+            toast.error("Erreur lors de la connexion avec Google")
+          }}
+          text={mode === "register" ? "signup_with" : "continue_with"}
+          shape="rectangular"
+          theme="outline"
+          size="large"
+          width={width.toString()}
+          useOneTap={false}
+        />
+      </div>
     </div>
   )
 }

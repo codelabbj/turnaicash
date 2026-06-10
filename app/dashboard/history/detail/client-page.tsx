@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Copy, RefreshCw, CheckCircle2, AlertCircle, Smartphone, Phone, CreditCard, Calendar, FileText, Contact } from "lucide-react"
+import { ArrowLeft, Copy, RefreshCw, CheckCircle2, AlertCircle, Smartphone, Phone, CreditCard, Calendar, FileText, Contact, Clock } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { transactionApi } from "@/lib/api-client"
 import type { Transaction, Settings } from "@/lib/types"
