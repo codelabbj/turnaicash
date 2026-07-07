@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
+import { useTheme } from "next-themes"
 
 export default function HomePage() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     if (!isLoading) {
@@ -23,7 +25,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6">
       <Image
-        src="/Turaincash-logo.png"
+        src={resolvedTheme === "dark" ? "/Turaincash-logo2.png" : "/Turaincash-logo.png"}
         alt="TurainCash Logo"
         width={50}
         height={16}

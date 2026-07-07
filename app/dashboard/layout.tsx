@@ -19,6 +19,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { settingsApi } from "@/lib/api-client"
+import { useTheme } from "next-themes"
 
 const baseNavigation = [
   { name: "Acceuil", href: "/dashboard", icon: Home },
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, logout } = useAuth()
   const [referralBonusEnabled, setReferralBonusEnabled] = useState(false)
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -90,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2 sm:gap-4">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <Image
-                  src="/Turaincash-logo.png"
+                  src={resolvedTheme === "dark" ? "/Turaincash-logo2.png" : "/Turaincash-logo.png"}
                   alt="TurainCash Logo"
                   width={40}
                   height={13}
