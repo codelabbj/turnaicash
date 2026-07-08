@@ -94,9 +94,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Image
                   src={resolvedTheme === "dark" ? "/Turaincash-logo2.png" : "/Turaincash-logo.png"}
                   alt="TurainCash Logo"
-                  width={160}
-                  height={52}
-                  className="h-9 w-auto max-w-[160px] object-contain"
+                  width={200}
+                  height={65}
+                  className="h-10 w-auto max-w-[200px] object-contain"
                   priority
                 />
               </Link>
