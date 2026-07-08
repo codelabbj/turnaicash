@@ -13,13 +13,13 @@ export default function AuthLayout({
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
-      <div className="mb-4">
+      <div className="mb-6 flex flex-col items-center gap-2">
         <Image
           src={resolvedTheme === "dark" ? "/Turaincash-logo2.png" : "/Turaincash-logo.png"}
           alt="TurainCash Logo"
-          width={50}
-          height={16}
-          className="h-auto w-auto max-w-[150px]"
+          width={90}
+          height={30}
+          className="h-auto w-auto max-w-[90px] drop-shadow-sm"
           priority
         />
       </div>
