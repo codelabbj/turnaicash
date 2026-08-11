@@ -21,6 +21,8 @@ Check if notifications are already blocked:
 
 ### 3. Common Issues
 
+
+
 #### Issue 1: Prompt Doesn't Show
 **Possible causes:**
 - Notification permission was already dismissed/blocked
