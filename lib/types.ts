@@ -23,6 +23,14 @@ export interface User {
   last_login: string
   groups: string[]
   user_permissions: string[]
+  /** Canaux notif (enregistrés / vérifiés) */
+  whatsapp?: boolean | string | null
+  whatsapp_verified?: boolean
+  user_whatsapp_phone?: string | null
+  telegram_verified?: boolean
+  telegram_username?: string | null
+  sms_verified?: boolean
+  user_sms_phone?: string | null
 }
 
 export interface AuthResponse {
@@ -211,6 +219,12 @@ export interface Advertisement {
 
 export interface Settings {
   referral_bonus?: boolean
+  use_whatsapp?: boolean
+  use_telegram?: boolean
+  use_sms?: boolean
+  use_chatbot?: boolean
+  whatsapp_phone?: string | null
+  telegram?: string | null
   [key: string]: any // Allow for flexible response structure
 }
 

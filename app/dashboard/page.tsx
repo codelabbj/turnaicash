@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download } from "lucide-react"
+import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download, Bot, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi, advertisementApi, settingsApi } from "@/lib/api-client"
@@ -27,6 +27,7 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel"
+import { SupportChatbot } from "@/components/SupportChatbot"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -40,6 +41,10 @@ export default function DashboardPage() {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
   const [isCarouselPaused, setIsCarouselPaused] = useState(false)
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
+  const chatbotEnabled = Boolean(settings?.use_chatbot)
+  const telegramEnabled = Boolean(settings?.use_telegram)
+  const whatsappEnabled = Boolean(settings?.use_whatsapp)
   
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -105,14 +110,28 @@ export default function DashboardPage() {
     }
   }
 
+  const whatsappUrl = (() => {
+    if (!whatsappEnabled) return ""
+    const phone = String(settings?.whatsapp_phone || "").replace(/\D/g, "")
+    return phone ? `https://wa.me/${phone}` : ""
+  })()
+  const telegramUrl = (() => {
+    if (!telegramEnabled) return ""
+    const value = String(settings?.telegram || "").trim()
+    if (!value) return ""
+    if (value.startsWith("http")) return value
+    return `https://t.me/${value.replace(/^@/, "")}`
+  })()
+  const showContactFab =
+    chatbotEnabled || Boolean(whatsappUrl) || Boolean(telegramUrl)
+
   const fetchSettings = async () => {
     try {
       const settingsData = await settingsApi.get()
       setSettings(settingsData)
     } catch (error) {
       console.error("Error fetching settings:", error)
-      // Set default values on error
-      setSettings({ whatsapp_phone: "0594811767", telegram: "0594811767" })
+      setSettings(null)
     }
   }
 
@@ -477,7 +496,11 @@ export default function DashboardPage() {
       </div>
     </div>
 
-    <Popover open={isChatPopoverOpen} onOpenChange={setIsChatPopoverOpen}>
+    {showContactFab ? (
+    <Popover open={isChatPopoverOpen} onOpenChange={(open) => {
+      setIsChatPopoverOpen(open)
+      if (open) void fetchSettings()
+    }}>
       <PopoverTrigger asChild>
         <Button
           className="fixed right-4 bottom-24 sm:bottom-10 sm:right-8 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-primary/50 transition transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
@@ -493,53 +516,100 @@ export default function DashboardPage() {
         side="top"
       >
         <div className="space-y-1">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 h-auto py-3"
-            onClick={() => {
-              const whatsappNumber = settings?.whatsapp_phone || "0594811767"
-              window.open(`https://wa.me/${whatsappNumber}`, "_blank")
-              setIsChatPopoverOpen(false)
-            }}
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#25D366] text-white">
-              <svg
-                className="h-5 w-5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-              </svg>
-            </div>
-            <div className="flex flex-col items-start">
-              <span className="font-medium text-sm">WhatsApp</span>
-              <span className="text-xs text-muted-foreground">Chat sur WhatsApp</span>
-            </div>
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 h-auto py-3"
-            onClick={() => {
-              const telegramValue = settings?.telegram || "Turaincash"
-              const telegramUrl = telegramValue.startsWith("http")
-                ? telegramValue
-                : `https://t.me/${telegramValue}`
-              window.open(telegramUrl, "_blank")
-              setIsChatPopoverOpen(false)
-            }}
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white">
-              <Send className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col items-start">
-              <span className="font-medium text-sm">Telegram</span>
-              <span className="text-xs text-muted-foreground">Chat sur Telegram</span>
-            </div>
-          </Button>
+          {chatbotEnabled && (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => {
+                setIsChatPopoverOpen(false)
+                setIsChatbotOpen(true)
+              }}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-medium text-sm">Assistant IA</span>
+                <span className="text-xs text-muted-foreground">Réponse instantanée</span>
+              </div>
+            </Button>
+          )}
+          {whatsappUrl ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => {
+                window.open(whatsappUrl, "_blank")
+                setIsChatPopoverOpen(false)
+              }}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#25D366] text-white">
+                <svg
+                  className="h-5 w-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-medium text-sm">WhatsApp</span>
+                <span className="text-xs text-muted-foreground">Chat sur WhatsApp</span>
+              </div>
+            </Button>
+          ) : null}
+          {telegramUrl ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => {
+                window.open(telegramUrl, "_blank")
+                setIsChatPopoverOpen(false)
+              }}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white">
+                <Send className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-medium text-sm">Telegram</span>
+                <span className="text-xs text-muted-foreground">Chat sur Telegram</span>
+              </div>
+            </Button>
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>
+    ) : null}
+
+    {isChatbotOpen && chatbotEnabled && (
+      <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+        <div className="w-full sm:max-w-lg mx-auto flex flex-col bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl h-[min(80vh,640px)] max-h-[calc(100dvh-2rem)]">
+          <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+            <div>
+              <p className="font-bold text-lg">Assistant IA</p>
+              <p className="text-sm text-muted-foreground">Tapez votre message en bas</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsChatbotOpen(false)}
+              className="w-10 h-10 border border-border rounded-xl flex items-center justify-center"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 px-3 pb-3">
+            <SupportChatbot
+              hideHeader
+              pageKey="dashboard"
+              route="/dashboard"
+              screenTitle="Dashboard"
+            />
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

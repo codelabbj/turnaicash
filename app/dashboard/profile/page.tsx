@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2, User as UserIcon, Save, Eye, EyeOff, Lock } from "lucide-react"
 import { authApi } from "@/lib/api-client"
 import type { User } from "@/lib/types"
+import NotificationChannelsPanel from "@/components/NotificationChannelsPanel"
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -163,6 +164,13 @@ export default function ProfilePage() {
           Gérez vos informations personnelles
         </p>
       </div>
+
+      {/* Notification Channels */}
+      <Card>
+        <CardContent className="pt-6">
+          <NotificationChannelsPanel mode="profile" showHeader />
+        </CardContent>
+      </Card>
 
       {/* Profile Information Card */}
       <Card>

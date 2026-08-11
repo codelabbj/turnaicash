@@ -15,6 +15,7 @@ import {
   Calendar,
   FileText,
   User as UserIcon,
+  X,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { transactionApi } from "@/lib/api-client"
@@ -22,6 +23,7 @@ import type { Transaction } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { SupportChatbot } from "@/components/SupportChatbot"
 import { toast } from "react-hot-toast"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -36,6 +38,8 @@ function TransactionDetailContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [claimMessage, setClaimMessage] = useState("")
 
   const fetchTransactionDetails = useCallback(async (showLoading = true) => {
     if (!id) return
@@ -200,22 +204,28 @@ function TransactionDetailContent() {
     )
   }
 
-  const contactSupport = () => {
+  const openAssistantWithClaim = () => {
     const firstName = user?.first_name || "Utilisateur"
     const lastName = user?.last_name || ""
     const ref = transaction.reference
     const amount = transaction.amount
-    const networkName = transaction.network + "" // Fallback to ID if name not present in this project
+    const networkName = transaction.network + ""
     const phone = transaction.phone_number
-    const appName = transaction.app || "App"
     const appId = transaction.user_app_id || "N/A"
-    const transType = transaction.type_trans === "deposit" ? "Dépôt" : "Retrait"
+    const transType = transaction.type_trans === "deposit" ? "dépôt" : "retrait"
 
-    const message = `Bonjour moi c'est ${firstName} ${lastName}, j'ai besoin d'aide concernant mon ${transType}.\nDate: ${formatDate(
-      transaction.created_at
-    )}\nRéférence: ${ref}\nMontant: XOF ${amount}\nRéseau: ${networkName}\nTéléphone: ${phone}\n*${appName} ID:* ${appId}`
+    const message =
+      `Bonjour moi c'est ${firstName} ${lastName}, j'ai besoin d'aide concernant mon ${transType}.\n` +
+      `Type: ${transType}\n` +
+      `Date: ${formatDate(transaction.created_at)}\n` +
+      `Référence: ${ref}\n` +
+      `Montant: XOF ${amount}\n` +
+      `Réseau: ${networkName}\n` +
+      `Téléphone: ${phone}\n` +
+      `ID joueur: ${appId}`
 
-    window.open(`https://wa.me/22553445327?text=${encodeURIComponent(message)}`, "_blank")
+    setClaimMessage(message)
+    setIsChatOpen(true)
   }
 
   return (
@@ -353,16 +363,46 @@ function TransactionDetailContent() {
 
       <div className="flex flex-col gap-3 pb-8">
         <Button 
-          onClick={contactSupport}
+          onClick={openAssistantWithClaim}
           className="w-full h-12 bg-red-100 hover:bg-red-200 text-red-600 border-none font-bold"
           variant="outline"
         >
-          Contacter le support
+          ENVOYER UNE RÉCLAMATION
         </Button>
         <Button variant="outline" className="w-full h-12 font-bold" onClick={() => router.push("/dashboard/history")}>
           Retour à l'historique
         </Button>
       </div>
+
+      {isChatOpen && (
+        <div className="fixed inset-0 z-[110] flex flex-col justify-end sm:justify-center bg-black/50 p-0 sm:p-4">
+          <div className="w-full sm:max-w-lg mx-auto flex flex-col bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl h-[min(80vh,640px)] max-h-[calc(100dvh-2rem)]">
+            <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+              <div>
+                <p className="font-bold text-lg">Assistant IA</p>
+                <p className="text-sm text-muted-foreground">Réclamation concernant cette transaction</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(false)}
+                className="w-10 h-10 border border-border rounded-xl flex items-center justify-center"
+                aria-label="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 px-3 pb-3">
+              <SupportChatbot
+                hideHeader
+                pageKey="transaction_detail"
+                route="/dashboard/history"
+                screenTitle="Réclamation transaction"
+                initialMessage={claimMessage}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { settingsApi } from "@/lib/api-client"
 import { useTheme } from "next-themes"
+import NotificationChannelDialog from "@/components/NotificationChannelDialog"
 
 const baseNavigation = [
   { name: "Acceuil", href: "/dashboard", icon: Home },
@@ -165,6 +166,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 lg:pb-6">{children}</main>
+
+      <NotificationChannelDialog />
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden safe-area-inset-bottom">

@@ -39,6 +39,8 @@ export const authApi = {
     password: string
     re_password: string
     referral_code?: string
+    user_whatsapp_phone?: string
+    whatsapp_verified?: boolean
   }) => {
     const payload: any = {
       ...userData,
@@ -48,7 +50,19 @@ export const authApi = {
     if (userData.referral_code) {
       payload.referral_code = userData.referral_code
     }
+    if (userData.user_whatsapp_phone) {
+      payload.user_whatsapp_phone = formatPhoneNumber(userData.user_whatsapp_phone)
+    }
     const { data } = await api.post("/auth/registration", payload)
+    return data
+  },
+
+  /** Vérifie si un numéro est sur WhatsApp (settings.use_whatsapp). */
+  checkWhatsappPhone: async (user_whatsapp_phone: string) => {
+    const { data } = await api.post<{ success?: boolean; message?: string }>(
+      "/auth/check-whatsapp-phone",
+      { user_whatsapp_phone: formatPhoneNumber(user_whatsapp_phone) }
+    )
     return data
   },
 
@@ -300,7 +314,7 @@ export const advertisementApi = {
 
 export const settingsApi = {
   get: async () => {
-    const { data } = await api.get<Settings>("/mobcash/setting")
+    const { data } = await api.get<Settings>("/mobcash/v2/setting/")
     return data
   },
 }
