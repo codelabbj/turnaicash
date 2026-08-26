@@ -5,6 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** True si la plateforme est BetMomo (pas de search-user côté front). */
+export function isBetMomoPlatform(
+  platform?: { name?: string | null; public_name?: string | null } | null,
+): boolean {
+  if (!platform) return false
+  const normalize = (value?: string | null) =>
+    (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "")
+  const name = normalize(platform.name)
+  const publicName = normalize(platform.public_name)
+  return name === "BETMOMO" || publicName === "BETMOMO"
+}
+
 /**
  * Formats a phone number by removing all non-digit characters (spaces, plus signs, etc.)
  * Example: "+229 01 57455419" -> "2290157455419"

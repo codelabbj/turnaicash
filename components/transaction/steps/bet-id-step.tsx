@@ -20,6 +20,7 @@ import { Loader2, Plus, Edit, Trash2 } from "lucide-react"
 import { userAppIdApi } from "@/lib/api-client"
 import type { UserAppId, Platform, SearchUserResponse } from "@/lib/types"
 import { toast } from "react-hot-toast"
+import { isBetMomoPlatform } from "@/lib/utils"
 
 interface BetIdStepProps {
   selectedPlatform: Platform | null
@@ -69,6 +70,42 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
 
   const handleAddBetId = async () => {
     if (!newBetId.trim() || !selectedPlatform || !selectedPlatform.id) return
+
+    // BetMomo: pas d'API search-user — enregistrement direct
+    if (isBetMomoPlatform(selectedPlatform)) {
+      setIsSubmitting(true)
+      try {
+        const newBetIdData = await userAppIdApi.create(
+          newBetId.trim(),
+          selectedPlatform.id,
+        )
+        setBetIds((prev) => [...prev, newBetIdData])
+        setNewBetId("")
+        setIsAddDialogOpen(false)
+        toast.success("ID de pari ajouté avec succès")
+        onSelect(newBetIdData)
+        setTimeout(() => {
+          onNext()
+        }, 300)
+      } catch (error: any) {
+        console.error("Add bet ID error:", error)
+        let errorMsg = "Erreur lors de l'ajout de l'ID de pari"
+        if (error.response?.status === 400) {
+          const errorData = error.response.data
+          if (errorData.user_app_id) {
+            errorMsg = Array.isArray(errorData.user_app_id)
+              ? errorData.user_app_id[0]
+              : errorData.user_app_id
+          } else if (errorData.detail || errorData.error || errorData.message) {
+            errorMsg = errorData.detail || errorData.error || errorData.message
+          }
+        }
+        toast.error(errorMsg)
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
     
     // Search for the user first
     setIsSearching(true)
@@ -193,6 +230,30 @@ export function BetIdStep({ selectedPlatform, selectedBetId, onSelect, onNext }:
     } finally {
       setIsSubmitting(false)
     }
+      return
+    }
+
+    // BetMomo: pas d'API search-user — update direct
+    if (isBetMomoPlatform(selectedPlatform)) {
+      setIsSubmitting(true)
+      try {
+        const updatedBetId = await userAppIdApi.update(
+          editingBetId.id,
+          newBetId.trim(),
+          selectedPlatform.id,
+        )
+        setBetIds((prev) =>
+          prev.map((betId) => (betId.id === editingBetId.id ? updatedBetId : betId)),
+        )
+        setNewBetId("")
+        setEditingBetId(null)
+        setIsEditDialogOpen(false)
+        toast.success("ID de pari modifié avec succès")
+      } catch (error) {
+        toast.error("Erreur lors de la modification de l'ID de pari")
+      } finally {
+        setIsSubmitting(false)
+      }
       return
     }
 

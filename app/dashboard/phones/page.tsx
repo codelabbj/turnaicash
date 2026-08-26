@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatPhoneNumberForDisplay } from "@/lib/utils"
+import { formatPhoneNumberForDisplay, isBetMomoPlatform } from "@/lib/utils"
 
 const COUNTRY_OPTIONS = [
   { label: "Burkina Faso", value: "bf", prefix: "+226" },
@@ -207,6 +207,25 @@ export default function PhonesPage() {
         loadData()
       } catch (error) {
         console.error("App ID operation error:", error)
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+
+    const platform = platforms.find((p) => p.id === data.app)
+    // BetMomo: pas d'API search-user — enregistrement direct
+    if (isBetMomoPlatform(platform)) {
+      setIsSubmitting(true)
+      try {
+        await userAppIdApi.create(data.user_app_id, data.app)
+        toast.success("ID de pari ajouté avec succès!")
+        setIsAppIdDialogOpen(false)
+        appIdForm.reset()
+        loadData()
+      } catch (error) {
+        console.error("App ID operation error:", error)
+        toast.error("Erreur lors de l'ajout de l'ID de pari")
       } finally {
         setIsSubmitting(false)
       }
