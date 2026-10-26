@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import React from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -184,93 +184,51 @@ export default function DashboardPage() {
   return (
     <>
     <div className="space-y-6 sm:space-y-8">
-      {/* Welcome section */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Bienvenue, {user?.first_name} {user?.last_name}
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Gérez vos dépôts et retraits en toute simplicité</p>
-      </div>
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl sm:text-[2rem] font-bold tracking-tight leading-tight">
+            Bienvenue, {user?.first_name} {user?.last_name}
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Gérez vos dépôts et retraits en toute simplicité
+          </p>
+        </div>
 
-      {/* Mobile App Download */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary/20">
-                <Smartphone className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-base sm:text-lg">Téléchargez l'application mobile</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                  Accédez à vos services depuis votre téléphone
-                </p>
-              </div>
-            </div>
-            <Button
-              asChild
-              size="sm"
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <a
-                href="/app-v1.0.5.apk"
-                download="TurainCash-v1.0.5.apk"
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                <span className="text-xs sm:text-sm font-medium">Télécharger</span>
-              </a>
-            </Button>
+        <div className="flex items-center gap-3 rounded-[28px] bg-[#1c4548] text-white px-3.5 py-3 sm:px-4 sm:py-3.5">
+          <div className="flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-white/10 shrink-0">
+            <Smartphone className="h-5 w-5 sm:h-6 sm:w-6 text-white/90" />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Balance card */}
-      {/* <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
-        <CardHeader>
-          <CardDescription className="text-primary-foreground/80">Solde disponible</CardDescription>
-          <CardTitle className="text-4xl font-bold">
-            {user?.balance?.toLocaleString("fr-FR", {
-              style: "currency",
-              currency: "XOF",
-              minimumFractionDigits: 0,
-            }) || "0 FCFA"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3">
-            <Button asChild variant="secondary" size="sm" className="text-deposit border-deposit hover:bg-green-500/10">
-              <Link href="/dashboard/deposit">
-                <ArrowDownToLine className="mr-2 h-4 w-4 text-deposit" />
-                Déposer
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm" className="text-withdrawal border-withdrawal hover:bg-blue-500/10">
-              <Link href="/dashboard/withdrawal">
-                <ArrowUpFromLine className="mr-2 h-4 w-4 text-withdrawal" />
-                Retirer
-              </Link>
-            </Button>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm sm:text-base leading-tight">Application mobile</p>
+            <p className="text-xs sm:text-sm text-white/70 truncate mt-0.5">
+              Vos services sur téléphone
+            </p>
           </div>
-        </CardContent>
-      </Card> */}
+          <a
+            href="/app-v1.0.5.apk"
+            download="TurainCash-v1.0.5.apk"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-white text-[#1c4548] hover:bg-white/90 h-10 px-4 text-sm font-semibold transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Télécharger
+          </a>
+        </div>
 
-      {/* Quick actions */}
-      <div>
-        {/* <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Actions rapides</h2> */}
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          <Button asChild size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9 bg-[#16a34a] hover:bg-[#15803d] text-white">
-            <Link href="/dashboard/deposit" className="flex items-center justify-center gap-2">
-              <ArrowDownToLine className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Dépôt</span>
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="flex-1 sm:flex-initial min-w-[120px] sm:min-w-[140px] h-10 sm:h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white">
-            <Link href="/dashboard/withdrawal" className="flex items-center justify-center gap-2">
-              <ArrowUpFromLine className="h-4 w-4" />
-              <span className="text-xs sm:text-sm font-medium">Retrait</span>
-            </Link>
-          </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/dashboard/deposit"
+            className="flex items-center justify-center gap-2 h-14 rounded-[28px] bg-[#7cbc6a] hover:bg-[#6dad5c] text-white font-semibold text-base transition-colors"
+          >
+            <ArrowDownToLine className="h-5 w-5" />
+            Dépôt
+          </Link>
+          <Link
+            href="/dashboard/withdrawal"
+            className="flex items-center justify-center gap-2 h-14 rounded-[28px] bg-[#5b6ef5] hover:bg-[#4d60e8] text-white font-semibold text-base transition-colors"
+          >
+            <ArrowUpFromLine className="h-5 w-5" />
+            Retrait
+          </Link>
         </div>
       </div>
 
