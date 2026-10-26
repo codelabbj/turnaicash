@@ -1,26 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Search, Filter, RefreshCw } from "lucide-react"
 import { transactionApi } from "@/lib/api-client"
 import type { Transaction } from "@/lib/types"
 import { toast } from "react-hot-toast"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
-import { formatPhoneNumberForDisplay } from "@/lib/utils"
+import { TransactionActivityItem } from "@/components/transaction-activity-item"
 
 export default function TransactionHistoryPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const initialLoadDone = useRef(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -34,17 +33,18 @@ export default function TransactionHistoryPage() {
     fetchTransactions()
   }, [currentPage, searchTerm, typeFilter, statusFilter])
 
-  // Refetch data when the page gains focus to ensure fresh data
   useEffect(() => {
     const handleFocus = () => {
-      fetchTransactions()
+      fetchTransactions({ silent: true })
     }
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [])
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
+  }, [currentPage, searchTerm, typeFilter, statusFilter])
 
-  const fetchTransactions = async () => {
-    setIsLoading(true)
+  const fetchTransactions = async (opts?: { silent?: boolean; refresh?: boolean }) => {
+    const showLoader = !initialLoadDone.current && !opts?.silent
+    if (showLoader) setIsLoading(true)
+    else if (opts?.refresh) setIsRefreshing(true)
     try {
       const params: any = {
         page: currentPage,
@@ -62,30 +62,10 @@ export default function TransactionHistoryPage() {
     } catch (error) {
       toast.error("Erreur lors du chargement de l'historique")
     } finally {
+      initialLoadDone.current = true
       setIsLoading(false)
+      setIsRefreshing(false)
     }
-  }
-
-  const getStatusBadge = (status: Transaction["status"]) => {
-    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pending: { variant: "secondary", label: "En attente" },
-      accept: { variant: "default", label: "Accepté" },
-      init_payment: { variant: "secondary", label: "En attente" },
-      error: { variant: "destructive", label: "Erreur" },
-      reject: { variant: "destructive", label: "Rejeté" },
-      timeout: { variant: "outline", label: "Expiré" },
-    }
-    
-    const config = statusConfig[status] || { variant: "outline" as const, label: status }
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
-
-  const getTypeBadge = (type: Transaction["type_trans"]) => {
-    return (
-      <Badge variant={type === "deposit" ? "default" : "secondary"}>
-        {type === "deposit" ? "Dépôt" : "Retrait"}
-      </Badge>
-    )
   }
 
   const handleSearch = (value: string) => {
@@ -183,16 +163,15 @@ export default function TransactionHistoryPage() {
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-base sm:text-lg">
-              <span>Transactions ({totalCount})</span>
+              <span>Activité récente ({totalCount})</span>
               <Button 
                 variant="outline" 
-                size="sm"
-                onClick={fetchTransactions}
-                disabled={isLoading}
-                className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 self-start sm:self-auto"
+                size="icon"
+                onClick={() => fetchTransactions({ refresh: true })}
+                className="h-9 w-9 rounded-full self-start sm:self-auto"
+                aria-label="Actualiser"
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline ml-2">Actualiser</span>
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
               </Button>
             </CardTitle>
           </CardHeader>
@@ -209,55 +188,16 @@ export default function TransactionHistoryPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-2.5">
                 {transactions.map((transaction) => (
-                  <Card 
-                    key={transaction.id} 
-                    className="hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                  <TransactionActivityItem
+                    key={transaction.id}
+                    transaction={transaction}
                     onClick={() => {
-                      sessionStorage.setItem('cached_transaction', JSON.stringify(transaction))
+                      sessionStorage.setItem("cached_transaction", JSON.stringify(transaction))
                       router.push(`/dashboard/history/detail?id=${transaction.id}`)
                     }}
-                  >
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-semibold text-sm sm:text-base">#{transaction.reference}</h3>
-                            {getTypeBadge(transaction.type_trans)}
-                            {getStatusBadge(transaction.status)}
-                          </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                            <p className="truncate">Plateforme: {transaction.app}</p>
-                            <p className="truncate">ID de pari: {transaction.user_app_id}</p>
-                            <p className="truncate">Téléphone: {formatPhoneNumberForDisplay(transaction.phone_number)}</p>
-                            {transaction.withdriwal_code && (
-                              <p className="truncate">Code de retrait: {transaction.withdriwal_code}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-left sm:text-right flex-shrink-0 space-y-2">
-                          <p className="text-base sm:text-lg font-semibold">
-                            {transaction.amount.toLocaleString("fr-FR", {
-                              style: "currency",
-                              currency: "XOF",
-                              minimumFractionDigits: 0,
-                            })}
-                          </p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            {format(new Date(transaction.created_at), "dd MMM yyyy à HH:mm", {
-                              locale: fr,
-                            })}
-                          </p>
-                          {transaction.error_message && (
-                            <p className="text-xs sm:text-sm text-red-500 break-words">
-                              Erreur: {transaction.error_message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  />
                 ))}
               </div>
             )}

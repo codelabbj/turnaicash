@@ -14,27 +14,39 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 
+type PronosCache = {
+  at: number
+  today: TodayPredictionsResponse | null
+  coupons: Coupon[]
+  platforms: Platform[]
+}
+
+const PRONOS_TTL_MS = 5 * 60 * 1000
+let pronosCache: PronosCache | null = null
+
 export default function CouponPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState<"pronos" | "codes">("pronos")
-  const [coupons, setCoupons] = useState<Coupon[]>([])
-  const [platforms, setPlatforms] = useState<Platform[]>([])
-  const [today, setToday] = useState<TodayPredictionsResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [coupons, setCoupons] = useState<Coupon[]>(pronosCache?.coupons ?? [])
+  const [platforms, setPlatforms] = useState<Platform[]>(pronosCache?.platforms ?? [])
+  const [today, setToday] = useState<TodayPredictionsResponse | null>(pronosCache?.today ?? null)
+  const [isLoading, setIsLoading] = useState(!pronosCache)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
   useEffect(() => {
+    const cacheFresh = pronosCache && Date.now() - pronosCache.at < PRONOS_TTL_MS
+    if (cacheFresh && pronosCache) {
+      setToday(pronosCache.today)
+      setCoupons(pronosCache.coupons)
+      setPlatforms(pronosCache.platforms)
+      setIsLoading(false)
+      return
+    }
     fetchAll()
   }, [])
 
-  useEffect(() => {
-    const handleFocus = () => fetchAll()
-    window.addEventListener("focus", handleFocus)
-    return () => window.removeEventListener("focus", handleFocus)
-  }, [])
-
   const fetchAll = async () => {
-    setIsLoading(true)
+    if (!pronosCache) setIsLoading(true)
     try {
       const [pred, codes, plats] = await Promise.all([
         predictionsApi.getToday().catch(() => null),
@@ -44,6 +56,16 @@ export default function CouponPage() {
       setToday(pred)
       setCoupons(codes.results)
       setPlatforms(plats)
+      if (pred?.locked) {
+        pronosCache = null
+      } else {
+        pronosCache = {
+          at: Date.now(),
+          today: pred,
+          coupons: codes.results,
+          platforms: plats,
+        }
+      }
     } catch (error) {
       console.error(error)
       toast.error("Erreur lors du chargement")

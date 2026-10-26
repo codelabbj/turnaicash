@@ -6,21 +6,18 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ArrowDownToLine, ArrowUpFromLine, Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download, Bot, X } from "lucide-react"
+import { Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download, Bot, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi, advertisementApi, settingsApi } from "@/lib/api-client"
 import type { Transaction, Advertisement, Settings } from "@/lib/types"
 import { toast } from "react-hot-toast"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
-import { formatPhoneNumberForDisplay } from "@/lib/utils"
+import { TransactionActivityItem } from "@/components/transaction-activity-item"
 import {
   Carousel,
   CarouselContent,
@@ -49,12 +46,16 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  const initialLoadDone = React.useRef(false)
 
-  const fetchRecentTransactions = async (pageNum = 1) => {
+  const fetchRecentTransactions = async (pageNum = 1, opts?: { refresh?: boolean }) => {
+    const showLoader = pageNum === 1 && !initialLoadDone.current
     try {
-      if (pageNum === 1) setIsLoadingTransactions(true)
-      else setIsLoadingMore(true)
+      if (showLoader) setIsLoadingTransactions(true)
+      else if (opts?.refresh) setIsRefreshing(true)
+      else if (pageNum !== 1) setIsLoadingMore(true)
       
       const data = await transactionApi.getHistory({
         page: pageNum,
@@ -71,8 +72,10 @@ export default function DashboardPage() {
       console.error("Error fetching recent transactions:", error)
       toast.error("Erreur lors du chargement des transactions récentes")
     } finally {
+      initialLoadDone.current = true
       setIsLoadingTransactions(false)
       setIsLoadingMore(false)
+      setIsRefreshing(false)
     }
   }
 
@@ -177,30 +180,6 @@ export default function DashboardPage() {
 
     return () => clearInterval(interval)
   }, [carouselApi, advertisements.length, isCarouselPaused])
-
-  const getStatusBadge = (status: Transaction["status"]) => {
-    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pending:      { variant: "secondary",    label: "En attente" },
-      accept:       { variant: "default",      label: "Accepté" },
-      init_payment: { variant: "secondary",    label: "En attente" },
-      error:        { variant: "destructive",  label: "Erreur" },
-      reject:       { variant: "destructive",  label: "Rejeté" },
-      timeout:      { variant: "outline",      label: "Expiré" },
-      cancel:       { variant: "outline",      label: "Annulé" },   // ✅ ajout
-      annuler:      { variant: "outline",      label: "Annulé" },   // ✅ ajout (API retourne parfois "annuler")
-    }
-  
-    const config = statusConfig[status] || { variant: "outline" as const, label: status }
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
-
-  const getTypeBadge = (type: Transaction["type_trans"]) => {
-    return (
-      <Badge variant={type === "deposit" ? "default" : "secondary"}>
-        {type === "deposit" ? "Dépôt" : "Retrait"}
-      </Badge>
-    )
-  }
 
   return (
     <>
@@ -390,25 +369,23 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl font-semibold">Activité récente</h2>
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
-              size="sm"
+              size="icon"
               onClick={() => {
                 setPage(1)
-                fetchRecentTransactions(1)
+                fetchRecentTransactions(1, { refresh: true })
               }}
-              disabled={isLoadingTransactions}
-              className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3"
+              className="h-9 w-9 rounded-full"
+              aria-label="Actualiser"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline ml-2">Actualiser</span>
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
-              <Link href="/dashboard/history" className="flex items-center gap-1 sm:gap-2">
-                <span className="hidden sm:inline">Voir tout</span>
-                <span className="sm:hidden">Tout</span>
-                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-full px-4">
+              <Link href="/dashboard/history" className="flex items-center gap-1">
+                Tout
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -432,63 +409,21 @@ export default function DashboardPage() {
           <div 
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="space-y-2 sm:space-y-3 h-[320px] overflow-y-auto pr-1 pb-4"
+            className="space-y-2.5 h-[360px] overflow-y-auto pr-1 pb-4"
           >
             {recentTransactions.map((transaction) => (
-              <Card 
-                key={transaction.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+              <TransactionActivityItem
+                key={transaction.id}
+                transaction={transaction}
                 onClick={() => {
-                  sessionStorage.setItem('cached_transaction', JSON.stringify(transaction))
+                  sessionStorage.setItem("cached_transaction", JSON.stringify(transaction))
                   router.push(`/dashboard/history/detail?id=${transaction.id}`)
                 }}
-              >
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                      <div className={`p-1.5 sm:p-2 rounded-full flex-shrink-0 ${
-                        transaction.type_trans === "deposit" 
-                          ? "bg-green-500/10 text-green-500" 
-                          : "bg-blue-500/10 text-blue-500"
-                      }`}>
-                        {transaction.type_trans === "deposit" ? (
-                          <ArrowDownToLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        ) : (
-                          <ArrowUpFromLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                          <h3 className="font-semibold text-sm sm:text-base truncate">#{transaction.reference}</h3>
-                          {getTypeBadge(transaction.type_trans)}
-                          {getStatusBadge(transaction.status)}
-                        </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                          {transaction.app_details?.name || transaction.app} • {formatPhoneNumberForDisplay(transaction.phone_number)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-left sm:text-right flex-shrink-0">
-                      <p className="text-base sm:text-lg font-semibold">
-                        {transaction.amount.toLocaleString("fr-FR", {
-                          style: "currency",
-                          currency: "XOF",
-                          minimumFractionDigits: 0,
-                        })}
-                      </p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        {format(new Date(transaction.created_at), "dd MMM à HH:mm", {
-                          locale: fr,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              />
             ))}
             {isLoadingMore && (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="flex justify-center py-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             )}
           </div>
