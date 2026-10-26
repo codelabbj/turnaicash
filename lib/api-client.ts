@@ -325,3 +325,38 @@ export const couponApi = {
     return data
   },
 }
+
+export type PredictionCard = {
+  id: number
+  competition: { id: number; slug: string; name: string; logo?: string }
+  home: { id: number; name: string; logo: string }
+  away: { id: number; name: string; logo: string }
+  status: string
+  status_label: string
+  kickoff_at: string
+  score_home: number | null
+  score_away: number | null
+  best_market_label: string
+  best_pari: { label: string; market: string; probability: number }
+  outcome: "pending" | "won" | "lost" | "void"
+  outcome_label: string | null
+}
+
+export type TodayPredictionsResponse = {
+  date: string
+  count: number
+  groups: {
+    competition: { id: number; slug: string; name: string; logo?: string }
+    predictions: PredictionCard[]
+  }[]
+  locked?: boolean
+  code?: string
+  detail?: string
+}
+
+export const predictionsApi = {
+  getToday: async () => {
+    const { data } = await api.get<TodayPredictionsResponse>("/api/v1/predictions/today/")
+    return data
+  },
+}
