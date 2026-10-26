@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download, Bot, X } from "lucide-react"
+import { Wallet, Loader2, ArrowRight, RefreshCw, MessageSquare, Send, Smartphone, Download, Bot, X, ArrowDownToLine, ArrowUpFromLine } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { transactionApi, advertisementApi, settingsApi } from "@/lib/api-client"
