@@ -149,13 +149,7 @@ export default function CouponPage() {
             </Card>
           ) : (
             <div className="space-y-8">
-              {today.groups
-                .map((group) => ({
-                  ...group,
-                  predictions: group.predictions.filter((p) => p.status !== "finished"),
-                }))
-                .filter((group) => group.predictions.length > 0)
-                .map((group) => (
+              {today.groups.map((group) => (
                 <section key={group.competition.slug}>
                   <h2 className="text-sm font-semibold tracking-wider uppercase text-sky-500 mb-3">
                     {group.competition.name}
